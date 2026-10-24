@@ -186,10 +186,18 @@ export class TuiRuntimeHost {
 	private async handleClientRequest(method: string, params: RecordValue, signal: AbortSignal): Promise<unknown> {
 		const ui = this.presentation.ui;
 		if (method === "elicitation/create") {
+			const interaction = this.authInteraction;
+			signal = interaction ? AbortSignal.any([signal, interaction.signal]) : signal;
+			if (signal.aborted) return { action: "cancel" };
 			const prompt = async (message: string, placeholder?: string): Promise<string | undefined> => {
-				if (this.authInteraction) return this.authInteraction.prompt({ type: "input", message, placeholder, signal });
-				if (!ui) throw new RpcError(-32050, "TUI is not ready to receive input", { kind: "busy" });
-				return ui.input(message, placeholder, { signal });
+				try {
+					if (interaction) return await interaction.prompt({ type: "input", message, placeholder, signal });
+					if (!ui) throw new RpcError(-32050, "TUI is not ready to receive input", { kind: "busy" });
+					return await ui.input(message, placeholder, { signal });
+				} catch (error) {
+					if (signal.aborted) return undefined;
+					throw error;
+				}
 			};
 			if (params.mode === "url") {
 				if (this.authInteraction)
@@ -203,7 +211,16 @@ export class TuiRuntimeHost {
 			if (params.mode !== "form") throw new RpcError(-32602, "Unsupported elicitation mode");
 			const content: RecordValue = {};
 			const schema = params.requestedSchema ?? {};
-			for (const [key, property] of Object.entries(schema.properties ?? {}) as [string, RecordValue][]) {
+			const properties = Object.entries(schema.properties ?? {}) as [string, RecordValue][];
+			if (properties.length === 0) {
+				// Native auth notifications use standard form elicitation, with their original
+				// non-secret event retained for the existing URL/device/info presentation.
+				const event = params._meta?.["pirua.dev/auth"]?.event;
+				if (interaction) interaction.notify(event ?? { type: "info", message: params.message });
+				else if (ui) ui.notify(params.message, "info");
+				else throw new RpcError(-32050, "TUI is not ready to display authentication instructions", { kind: "busy" });
+			}
+			for (const [key, property] of properties) {
 				if (signal.aborted) return { action: "cancel" };
 				let answer: string | undefined;
 				if (Array.isArray(property.enum) && ui)
@@ -213,7 +230,7 @@ export class TuiRuntimeHost {
 						property.title ?? property.description ?? key,
 						property.default === undefined ? undefined : String(property.default),
 					);
-				if (answer === undefined) return { action: "cancel" };
+				if (answer === undefined || signal.aborted) return { action: "cancel" };
 				if (property.type === "boolean")
 					content[key] = answer.toLowerCase() === "true" || answer.toLowerCase() === "yes";
 				else if (property.type === "number" || property.type === "integer") {
@@ -223,7 +240,7 @@ export class TuiRuntimeHost {
 					content[key] = value;
 				} else content[key] = answer;
 			}
-			return { action: "accept", content };
+			return signal.aborted ? { action: "cancel" } : { action: "accept", content };
 		}
 		if (method === "session/request_permission") {
 			if (!ui) throw new RpcError(-32050, "TUI is not ready for permission input", { kind: "busy" });
