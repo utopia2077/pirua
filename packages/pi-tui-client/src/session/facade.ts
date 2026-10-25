@@ -32,6 +32,9 @@ export class TuiSession {
 	private terminalOffsets = new Map<string, number>();
 	private terminalDecoders = new Map<string, StringDecoder>();
 	private closed = false;
+	private snapshotRequests = 0;
+	private resyncing = false;
+	private wakeResync: (() => void) | undefined;
 	restoredImages: ImageContent[] = [];
 	constructor(host: TuiRuntimeHost, snapshot: PiSnapshot) {
 		this.host = host;
@@ -41,9 +44,7 @@ export class TuiSession {
 		this.resourceLoader = new ResourceView(() => this.projection.value);
 		host.options.settings.setBackend(snapshot.settings);
 		this.unsub = this.projection.subscribe((event) => this.emit(event));
-		this.projection.onResync = () => {
-			void this.refresh().catch((error) => this.fail(error));
-		};
+		this.projection.onResync = () => void this.resync();
 		this.projection.onTerminal = (terminal) => {
 			const output = terminal.output;
 			const data = typeof output === "string" ? output : (output?.data ?? "");
@@ -184,13 +185,50 @@ export class TuiSession {
 	}
 	async refresh(signal?: AbortSignal): Promise<void> {
 		this.projection.beginHydration();
-		const snapshot = await this.host.client.request<PiSnapshot>(
-			"_pirua/session/snapshot",
-			{ sessionId: this.sessionId },
-			signal,
-		);
-		this.projection.install(snapshot);
-		this.settingsManager.setBackend(this.projection.value.settings);
+		this.snapshotRequests++;
+		try {
+			const snapshot = await this.host.client
+				.request<PiSnapshot>("_pirua/session/snapshot", { sessionId: this.sessionId }, signal)
+				.finally(() => this.snapshotRequests--);
+			this.projection.install(snapshot);
+		} catch (error) {
+			// Another pending snapshot still covers the buffered updates; otherwise apply them now.
+			if (!this.snapshotRequests) this.projection.abandonHydration();
+			throw error;
+		} finally {
+			// The snapshot or the released updates may have changed the backend settings.
+			this.settingsManager.setBackend(this.projection.value.settings);
+		}
+	}
+	// One resynchronization at a time: immediate, then 250 ms doubling to 5 s while still stale,
+	// reporting only the first failure of the episode.
+	private async resync(): Promise<void> {
+		if (this.resyncing) return;
+		this.resyncing = true;
+		let delay = 0,
+			reported = false;
+		try {
+			while (!this.closed && this.projection.stale) {
+				try {
+					await this.refresh();
+				} catch (error) {
+					if (!reported && !this.closed) this.fail(error);
+					reported = true;
+				}
+				if (this.closed || !this.projection.stale) break;
+				delay = Math.min(delay * 2 || 250, 5000);
+				await new Promise<void>((resolve) => {
+					const timer = setTimeout(resolve, delay);
+					this.wakeResync = () => {
+						clearTimeout(timer);
+						resolve();
+					};
+				});
+				this.wakeResync = undefined;
+			}
+		} finally {
+			this.resyncing = false;
+		}
 	}
 	async prompt(
 		text: string,
@@ -468,6 +506,7 @@ export class TuiSession {
 	}
 	dispose(): void {
 		this.closed = true;
+		this.wakeResync?.();
 		this.unsub();
 		this.listeners.clear();
 		this.bashController?.abort(new Error("Session closed"));

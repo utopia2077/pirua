@@ -101,6 +101,7 @@ export class SessionProjection {
 	onResync: ((reason: string) => void) | undefined;
 	onTerminal: ((terminal: RecordValue) => void) | undefined;
 	private hydrating = false;
+	private needsSnapshot = false;
 	private buffered: { method: string; params: RecordValue }[] = [];
 	constructor(snapshot: PiSnapshot) {
 		this.value = structuredClone(snapshot);
@@ -113,8 +114,26 @@ export class SessionProjection {
 	private emit(event: AgentSessionEvent): void {
 		for (const listener of this.listeners) listener(structuredClone(event));
 	}
+	// The projection missed a change that only a newer snapshot can repair.
+	get stale(): boolean {
+		return this.needsSnapshot;
+	}
 	beginHydration(): void {
 		this.hydrating = true;
+	}
+	// A failed snapshot still releases what it buffered, under the usual sequence and epoch checks.
+	abandonHydration(): void {
+		if (this.hydrating) this.release();
+	}
+	private release(): void {
+		this.hydrating = false;
+		const buffered = this.buffered;
+		this.buffered = [];
+		for (const item of buffered) this.receive(item.method, item.params);
+	}
+	private resync(reason: string): void {
+		this.needsSnapshot = true;
+		this.onResync?.(reason);
 	}
 	install(snapshot: PiSnapshot): void {
 		if (
@@ -130,6 +149,7 @@ export class SessionProjection {
 		const previousEpoch = this.value.epoch;
 		const coveredCompaction = this.snapshotCompactionOutcome(snapshot);
 		this.value = structuredClone(snapshot);
+		this.needsSnapshot = false;
 		if (previousEpoch !== snapshot.epoch) {
 			this.predecessors.clear();
 			this.compactionsEnded.clear();
@@ -157,10 +177,7 @@ export class SessionProjection {
 			this.finishCompaction(coveredCompaction);
 		}
 		if (previousState !== "idle" && settlement) this.emit({ type: "agent_settled", ...settlement });
-		this.hydrating = false;
-		const buffered = this.buffered;
-		this.buffered = [];
-		for (const item of buffered) this.receive(item.method, item.params);
+		this.release();
 	}
 	private stateSettlement(update: RecordValue | undefined): SessionSettlement | undefined {
 		if (update?.state !== "idle") return;
@@ -274,7 +291,7 @@ export class SessionProjection {
 		if (params.sessionId !== this.value.sessionId) return;
 		const cursor = method === "session/update" ? params._meta?.[PROJECTION] : params;
 		if (!cursor || cursor.epoch !== this.value.epoch) {
-			this.onResync?.("Activation epoch changed");
+			this.resync("Activation epoch changed");
 			return;
 		}
 		if (!Number.isSafeInteger(cursor.sequence)) throw new Error("Invalid projection sequence");
@@ -282,7 +299,7 @@ export class SessionProjection {
 		if (cursor.sequence !== this.value.sequence + 1) {
 			this.beginHydration();
 			this.buffered.push({ method, params: structuredClone(params) });
-			this.onResync?.("Projection sequence gap");
+			this.resync("Projection sequence gap");
 			return;
 		}
 		if (method === "session/update") this.update(params.update, true);
@@ -296,7 +313,7 @@ export class SessionProjection {
 			else if (change.kind === "append") {
 				if (change.baseRevision !== this.value.history.revision) {
 					this.beginHydration();
-					this.onResync?.("History revision mismatch");
+					this.resync("History revision mismatch");
 					return false;
 				}
 				this.value.history = {
