@@ -101,7 +101,7 @@ struct Owner {
     needs_rebuild: bool,
     queue_cancellations: BTreeMap<String, CancellationToken>,
     operation_reply: Option<Reply>,
-    operation_request: Option<String>,
+    operation_request: Option<(String, CancellationToken)>,
     cancel_replies: Vec<Reply>,
     close_replies: Vec<Reply>,
     admission: Arc<tokio::sync::Mutex<()>>,
@@ -318,6 +318,14 @@ impl Host {
         while let Some(event) = self.rx.recv().await {
             let event = match event {
                 Event::Ready(event) => *event,
+                // A cancel names no session, but its target may sit one barrier hop behind.
+                // Each event is deferred at most once, to the tail: every earlier call either
+                // ran on receipt or was requeued before this cancel arrived, so one hop of its
+                // own keeps the cancel behind all of them.
+                Event::Call(call) if call.method == "$/cancel_request" => {
+                    let _ = self.tx.send(Event::Ready(Box::new(Event::Call(call))));
+                    continue;
+                }
                 event => {
                     if let Some(id) = barrier_session(&event).map(str::to_owned)
                         && let Some(owner) = self.owners.get(&id)
@@ -665,9 +673,10 @@ impl Host {
                     if let Some(token) = owner.queue_cancellations.get(&request) {
                         token.cancel();
                     }
-                    if owner.operation_request.as_ref() == Some(&request) {
-                        owner.session.abort();
-                        owner.session.abort_bash();
+                    if let Some((operation, token)) = &owner.operation_request
+                        && *operation == request
+                    {
+                        token.cancel();
                     }
                 }
             }
@@ -996,6 +1005,9 @@ impl Host {
                             }
                             owner.session.abort();
                             owner.session.abort_bash();
+                            if let Some((_, token)) = &owner.operation_request {
+                                token.cancel();
+                            }
                             for token in owner.queue_cancellations.values() {
                                 token.cancel();
                             }
@@ -1348,14 +1360,27 @@ impl Host {
         operation: BoxFuture<'static, Result<OperationResult, String>>,
     ) {
         let owner = self.owners.get_mut(id).unwrap();
+        let token = CancellationToken::new();
         owner.busy = true;
         owner.operation_reply = Some(reply);
-        owner.operation_request = Some(key.into());
+        owner.operation_request = Some((key.into(), token.clone()));
+        let session = owner.session.clone();
         self.set_state(id, true, None);
         let tx = self.tx.clone();
         let id = id.to_owned();
         self.tasks.spawn(async move {
-            let result = operation.await;
+            // Polled first, the operation installs its abort target (e.g. the shell process)
+            // before a cancellation that preceded this task can look for it.
+            let mut operation = operation;
+            let result = tokio::select! {
+                biased;
+                result = &mut operation => result,
+                _ = token.cancelled() => {
+                    session.abort();
+                    session.abort_bash();
+                    operation.await
+                }
+            };
             let _ = tx.send(Event::Driver(id, result));
         });
     }
@@ -1915,6 +1940,153 @@ mod tests {
             let _ = std::fs::remove_dir_all(&self.0);
         }
     }
+    fn call(
+        tx: &mpsc::UnboundedSender<Event>,
+        id: Value,
+        method: &str,
+        params: Value,
+    ) -> oneshot::Receiver<RpcResult> {
+        let (reply, wait) = oneshot::channel();
+        let _ = tx.send(Event::Call(Call {
+            id,
+            method: method.into(),
+            params,
+            reply,
+        }));
+        wait
+    }
+    /// A Pi connection actor with one open fixture session. On the current-thread test
+    /// runtime the actor runs only while the test awaits, so frames sent back to back are
+    /// all queued before the actor receives the first of them.
+    async fn open(
+        root: &Root,
+    ) -> (
+        mpsc::UnboundedSender<Event>,
+        mpsc::UnboundedReceiver<Value>,
+        String,
+    ) {
+        let (sender, output) = mpsc::unbounded_channel();
+        let (tx, rx) = mpsc::unbounded_channel();
+        let host = Host {
+            application: Arc::new(root.application().await),
+            contracts: Contracts::new(),
+            tx: tx.clone(),
+            rx,
+            output: Output {
+                sender,
+                queued: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                closed: CancellationToken::new(),
+            },
+            reverse: Reverse::default(),
+            initialized: false,
+            pi: false,
+            elicitation: false,
+            owners: BTreeMap::new(),
+            pending: BTreeMap::new(),
+            tasks: JoinSet::new(),
+            auth: BTreeMap::new(),
+        };
+        tokio::spawn(host.run());
+        call(&tx, json!(1), "initialize", json!({"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{"_meta":{TUI:{"version":1}}}}))
+            .await
+            .unwrap()
+            .unwrap();
+        let session = call(
+            &tx,
+            json!(2),
+            "session/new",
+            json!({"cwd":root.0.to_string_lossy()}),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        (
+            tx,
+            output,
+            session["sessionId"].as_str().unwrap().to_owned(),
+        )
+    }
+    async fn shutdown(tx: &mpsc::UnboundedSender<Event>) {
+        let (done, wait) = oneshot::channel();
+        let _ = tx.send(Event::Shutdown(done));
+        let _ = wait.await;
+    }
+
+    #[tokio::test]
+    async fn request_cancel_reaches_a_shell_call_deferred_by_the_history_barrier() {
+        let root = Root::new();
+        let (tx, _output, s) = open(&root).await;
+        // Queued together: the barrier defers the shell call; the cancel names no session.
+        let shell = call(
+            &tx,
+            json!(10),
+            "_pirua/session/bash",
+            json!({"sessionId":s,"command":"sleep 2; printf should-not-run"}),
+        );
+        drop(call(
+            &tx,
+            Value::Null,
+            "$/cancel_request",
+            json!({"requestId":10}),
+        ));
+        let result = shell.await.unwrap().unwrap();
+        assert_eq!(result["cancelled"], true, "{result}");
+        assert!(
+            !result["output"]
+                .as_str()
+                .unwrap()
+                .contains("should-not-run")
+        );
+        shutdown(&tx).await;
+    }
+
+    #[tokio::test]
+    async fn request_cancel_reaches_a_prompt_deferred_by_the_history_barrier() {
+        let root = Root::new();
+        let (tx, _output, s) = open(&root).await;
+        let prompt = call(
+            &tx,
+            json!(11),
+            "session/prompt",
+            json!({"sessionId":s,"prompt":[{"type":"text","text":"fixture:block"}]}),
+        );
+        drop(call(
+            &tx,
+            Value::Null,
+            "$/cancel_request",
+            json!({"requestId":11}),
+        ));
+        let error = prompt
+            .await
+            .unwrap()
+            .expect_err("the cancel was received before the prompt could be inserted");
+        assert_eq!(error.code, -32800, "{error:?}");
+        shutdown(&tx).await;
+    }
+
+    #[tokio::test]
+    async fn session_cancel_reaches_a_shell_call_whose_task_has_not_started() {
+        let root = Root::new();
+        let (tx, _output, s) = open(&root).await;
+        let shell = call(
+            &tx,
+            json!(12),
+            "_pirua/session/bash",
+            json!({"sessionId":s,"command":"sleep 2; printf should-not-run"}),
+        );
+        let cancel = call(&tx, json!(13), "session/cancel", json!({"sessionId":s}));
+        let result = shell.await.unwrap().unwrap();
+        assert_eq!(result["cancelled"], true, "{result}");
+        assert!(
+            !result["output"]
+                .as_str()
+                .unwrap()
+                .contains("should-not-run")
+        );
+        cancel.await.unwrap().unwrap();
+        shutdown(&tx).await;
+    }
+
     struct Input(mpsc::UnboundedReceiver<std::io::Result<Vec<u8>>>);
     impl AsyncRead for Input {
         fn poll_read(
