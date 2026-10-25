@@ -178,12 +178,20 @@ where
         auth: BTreeMap::new(),
     };
     let actor = tokio::spawn(host.run());
-    let mut lines = BufReader::new(input).lines();
+    let mut lines = BufReader::new(input).split(b'\n');
     let mut responses = JoinSet::new();
+    let mut read = Ok(());
     loop {
-        let line = tokio::select! {line=lines.next_line()=>line?,_=tokio::signal::ctrl_c()=>None,_=closed.cancelled()=>None};
-        let Some(line) = line else { break };
-        match serde_json::from_str::<Value>(&line) {
+        let line = tokio::select! {line=lines.next_segment()=>line,_=tokio::signal::ctrl_c()=>Ok(None),_=closed.cancelled()=>Ok(None)};
+        // Bytes, not text: invalid UTF-8 is a parse error; a read error still shuts down below.
+        let Some(line) = line.unwrap_or_else(|error| {
+            read = Err(error);
+            None
+        }) else {
+            break;
+        };
+        let line = line.strip_suffix(b"\r").unwrap_or(&line);
+        match serde_json::from_slice::<Value>(line) {
             Err(_) => {
                 let _ = writer_tx.send(response(
                     Value::Null,
@@ -229,8 +237,9 @@ where
     reverse.lock().unwrap().clear();
     drop(tx);
     drop(writer_tx);
-    writer.await??;
-    Ok(())
+    let written = writer.await?;
+    read?;
+    written
 }
 fn route(
     value: Value,
@@ -1872,6 +1881,108 @@ impl AuthInteraction for Interaction {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{path::PathBuf, time::Duration};
+
+    struct Root(PathBuf);
+    impl Root {
+        fn new() -> Self {
+            static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+            Self(std::env::temp_dir().join(format!(
+                "pirua-acp-unit-{}-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            )))
+        }
+        async fn application(&self) -> Application {
+            Application::new(crate::Options {
+                data_dir: self.0.join("data"),
+                config_dir: self.0.join("config"),
+                credentials: None,
+                model: None,
+                fixture_provider: true,
+                fixture_delay_ms: 20,
+            })
+            .await
+            .unwrap()
+        }
+    }
+    impl Drop for Root {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    struct Input(mpsc::UnboundedReceiver<std::io::Result<Vec<u8>>>);
+    impl AsyncRead for Input {
+        fn poll_read(
+            mut self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+            buf: &mut tokio::io::ReadBuf<'_>,
+        ) -> std::task::Poll<std::io::Result<()>> {
+            self.0.poll_recv(cx).map(|item| match item {
+                Some(Ok(bytes)) => {
+                    buf.put_slice(&bytes);
+                    Ok(())
+                }
+                Some(Err(error)) => Err(error),
+                None => Ok(()),
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn input_read_error_shuts_down_and_settles_requests_before_returning() {
+        let root = Root::new();
+        let (lines, input) = mpsc::unbounded_channel();
+        let (output, server) = tokio::io::duplex(1 << 16);
+        let served = tokio::spawn(serve(root.application().await, Input(input), server));
+        let mut output = BufReader::new(output).lines();
+        let send = |value: Value| lines.send(Ok(format!("{value}\n").into_bytes())).unwrap();
+        send(
+            json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{}}}),
+        );
+        send(
+            json!({"jsonrpc":"2.0","id":2,"method":"session/new","params":{"cwd":root.0.to_string_lossy()}}),
+        );
+        let s = loop {
+            let frame: Value =
+                serde_json::from_str(&output.next_line().await.unwrap().unwrap()).unwrap();
+            if frame["id"] == 2 {
+                break frame["result"]["sessionId"].as_str().unwrap().to_owned();
+            }
+        };
+        send(
+            json!({"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{"sessionId":s,"prompt":[{"type":"text","text":"fixture:before-insert"}]}}),
+        );
+        lines
+            .send(Err(std::io::Error::other("synthetic read failure")))
+            .unwrap();
+        let mut frames = vec![];
+        let closed = tokio::time::timeout(Duration::from_secs(10), async {
+            while let Some(line) = output.next_line().await.unwrap() {
+                frames.push(serde_json::from_str::<Value>(&line).unwrap());
+            }
+        })
+        .await;
+        assert!(
+            closed.is_ok(),
+            "output must close after shutdown: {frames:?}"
+        );
+        assert!(
+            frames
+                .iter()
+                .any(|v| v["id"] == 3 && v["error"]["code"] == -32603),
+            "the in-flight prompt must be settled: {frames:?}"
+        );
+        let error = served
+            .await
+            .unwrap()
+            .expect_err("the read error is returned");
+        assert_eq!(error.to_string(), "synthetic read failure");
+    }
 
     #[test]
     fn auth_notifications_preserve_each_non_secret_event_without_waiting() {

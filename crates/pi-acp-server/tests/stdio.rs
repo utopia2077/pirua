@@ -80,6 +80,10 @@ impl Client {
         writeln!(self.input.as_mut().unwrap(), "{value}").unwrap();
         self.input.as_mut().unwrap().flush().unwrap();
     }
+    fn send_raw(&mut self, bytes: &[u8]) {
+        self.input.as_mut().unwrap().write_all(bytes).unwrap();
+        self.input.as_mut().unwrap().flush().unwrap();
+    }
     fn read(&mut self) -> Value {
         let v = self
             .lines
@@ -472,6 +476,23 @@ fn malformed_unknown_batches_and_notification_silence() {
     );
     c.send(json!([{"jsonrpc":"2.0","method":"unknown/notify"}]));
     assert!(c.lines.recv_timeout(Duration::from_millis(100)).is_err());
+}
+#[test]
+fn invalid_utf8_lines_are_parse_errors_and_the_connection_keeps_serving() {
+    let mut c = Client::start();
+    let parse = json!({"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}});
+    c.send_raw(b"\xff\xfe\n");
+    c.send_raw(b"{\"jsonrpc\":\"2.0\",\"id\":100,\"method\":\"session/list\",\"params\":{\"cwd\":\"\xff\"}}\n");
+    c.send_raw(b"\r\n\n");
+    for _ in 0..4 {
+        assert_eq!(c.read(), parse);
+    }
+    c.init(false);
+    c.send_raw(b"{\"jsonrpc\":\"2.0\",\"id\":101,\"method\":\"session/list\",\"params\":{}}\r\n");
+    assert!(c.result(101)["result"]["sessions"].is_array());
+    assert!(c.child.try_wait().unwrap().is_none());
+    c.shutdown();
+    assert!(c.child.wait().unwrap().success());
 }
 #[test]
 fn snapshot_preserves_native_slots_when_text_thought_and_text_share_identity() {
