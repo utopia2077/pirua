@@ -99,6 +99,7 @@ struct Owner {
     pending_inputs: usize,
     pending_queue: usize,
     needs_rebuild: bool,
+    rebuild_failed: bool,
     queue_cancellations: BTreeMap<String, CancellationToken>,
     operation_reply: Option<Reply>,
     operation_request: Option<(String, CancellationToken)>,
@@ -487,13 +488,32 @@ impl Host {
         session: CodingSession,
         loaded: LoadedResources,
     ) -> Result<String, RpcError> {
-        let observed = session.observe_history().map_err(RpcError::failed)?;
+        let owner = self.prepare(session, loaded).await?;
+        let id = owner.session.session_id();
+        self.owners.insert(id.clone(), owner);
+        Ok(id)
+    }
+    /// Every fallible step of a new owner, before the connection can see it. A session
+    /// that cannot become an owner is disposed here rather than leaked.
+    async fn prepare(
+        &self,
+        session: CodingSession,
+        loaded: LoadedResources,
+    ) -> Result<Owner, RpcError> {
+        #[cfg(test)]
+        tests::before_observation(&session).await;
+        let observed = match session.observe_history() {
+            Ok(observed) => observed,
+            Err(error) => {
+                let _ = session.dispose().await;
+                return Err(RpcError::failed(error));
+            }
+        };
         let initial = observed.snapshot.clone();
         let history = Arc::new(Mutex::new(observed));
         let callback_history = history.clone();
-        let id = session.session_id();
         let tx = self.tx.clone();
-        let event_id = id.clone();
+        let event_id = session.session_id();
         let subscription = session.subscribe(Arc::new(move |event| {
             observe(
                 &tx,
@@ -512,28 +532,25 @@ impl Host {
         settings["followUpMode"] = json!(session.agent().follow_up_mode());
         let mut projection = Projection::new(initial, &loaded, settings);
         projection.view = Projection::capture_view(&session, &self.application.models);
-        self.owners.insert(
-            id.clone(),
-            Owner {
-                session,
-                history,
-                projection,
-                subscription,
-                busy: false,
-                cancelling: false,
-                closing: false,
-                pending_inputs: 0,
-                pending_queue: 0,
-                needs_rebuild: false,
-                queue_cancellations: BTreeMap::new(),
-                operation_reply: None,
-                operation_request: None,
-                cancel_replies: vec![],
-                close_replies: vec![],
-                admission: Arc::new(tokio::sync::Mutex::new(())),
-            },
-        );
-        Ok(id)
+        Ok(Owner {
+            session,
+            history,
+            projection,
+            subscription,
+            busy: false,
+            cancelling: false,
+            closing: false,
+            pending_inputs: 0,
+            pending_queue: 0,
+            needs_rebuild: false,
+            rebuild_failed: false,
+            queue_cancellations: BTreeMap::new(),
+            operation_reply: None,
+            operation_request: None,
+            cancel_replies: vec![],
+            close_replies: vec![],
+            admission: Arc::new(tokio::sync::Mutex::new(())),
+        })
     }
     fn publish_fields(&mut self, id: &str, fields: &[&str]) {
         if !self.pi {
@@ -602,6 +619,26 @@ impl Host {
             }
         }
         Ok(())
+    }
+    /// Idle foreground admission on current live context.
+    async fn admit(&mut self, id: &str, params: &Value) -> Result<(), RpcError> {
+        self.require_idle(id, params)?;
+        self.require_current(id).await
+    }
+    /// A rejected input leaves provisional live context that admits nothing more. Replace it
+    /// first; when that fails again the request fails with the cause and nothing is admitted.
+    async fn require_current(&mut self, id: &str) -> Result<(), RpcError> {
+        let owner = self
+            .owners
+            .get(id)
+            .ok_or_else(|| RpcError::params("Session is not open; call session/resume"))?;
+        if !owner.needs_rebuild {
+            return Ok(());
+        }
+        if owner.busy || owner.pending_inputs > 0 || owner.pending_queue > 0 {
+            return Err(RpcError::app("busy", "Session foreground work is active"));
+        }
+        self.renew(id).await
     }
     fn own_ticket(
         &mut self,
@@ -931,7 +968,7 @@ impl Host {
                     )),
                     "session/prompt" => {
                         self.contracts.validate("PromptRequest", params)?;
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         if let Some(registry) = &self.application.registry {
                             let model = self.owners[&id].session.model();
                             if registry
@@ -1041,6 +1078,7 @@ impl Host {
                             &json!({"sessionId":id,"prompt":params["prompt"]}),
                         )?;
                         let (text, images) = content(&params["prompt"])?;
+                        self.require_current(&id).await?;
                         let owner = self.owners.get_mut(&id).unwrap();
                         owner.pending_queue += 1;
                         let token = CancellationToken::new();
@@ -1070,7 +1108,7 @@ impl Host {
                     "session/set_config_option" => {
                         self.contracts
                             .validate("SetSessionConfigOptionRequest", params)?;
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let config = string(params, "configId")?;
                         let kind = string(params, "type")?;
                         if !matches!(kind, "id" | "boolean") {
@@ -1153,7 +1191,7 @@ impl Host {
                         Ok(None)
                     }
                     "_pirua/session/bash" => {
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let command = string(params, "command")?.to_owned();
                         let exclude = optional_bool(params, "excludeFromContext", false)?;
                         let owner = self.owners.get_mut(&id).unwrap();
@@ -1180,7 +1218,7 @@ impl Host {
                         Ok(None)
                     }
                     "_pirua/session/navigate" => {
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let target = string(params, "targetId")?.to_owned();
                         let options = NavigateOptions {
                             summarize: optional_bool(params, "summarize", false)?,
@@ -1211,7 +1249,7 @@ impl Host {
                         Ok(None)
                     }
                     "_pirua/session/fork" => {
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let entry = string(params, "entryId")?.to_owned();
                         let position = string(params, "position")?.to_owned();
                         if position != "before" && position != "at" {
@@ -1262,7 +1300,7 @@ impl Host {
                         Ok(None)
                     }
                     "_pirua/session/label" => {
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let entry = string(params, "entryId")?.to_owned();
                         let label = match params.get("label") {
                             Some(Value::Null) => None,
@@ -1285,7 +1323,7 @@ impl Host {
                         Ok(None)
                     }
                     "_pirua/session/rename" => {
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let name = string(params, "name")?.to_owned();
                         let session = self.owners[&id].session.clone();
                         self.mutation(
@@ -1300,7 +1338,7 @@ impl Host {
                         Ok(None)
                     }
                     "_pirua/session/scoped_models" => {
-                        self.require_idle(&id, params)?;
+                        self.admit(&id, params).await?;
                         let models = params["models"]
                             .as_array()
                             .ok_or_else(|| RpcError::params("models must be an array"))?;
@@ -1338,7 +1376,7 @@ impl Host {
                     }
                     "_pirua/session/reload" => {
                         self.require_idle(&id, params)?;
-                        self.rebuild(&id).await?;
+                        self.renew(&id).await?;
                         let owner = &self.owners[&id];
                         let snapshot = owner
                             .projection
@@ -1665,23 +1703,24 @@ impl Host {
             return;
         }
         self.settle_projection(id);
+        // One automatic attempt per rejected input. After a failure only foreground
+        // admission retries, so a persistent fault cannot repeat on every connection event.
         let rebuild = self
             .owners
             .get(id)
-            .is_some_and(|owner| owner.needs_rebuild && !owner.closing);
-        if rebuild
-            && let Err(error) = self.rebuild(id).await
-            && let Some(owner) = self.owners.get_mut(id)
-        {
-            owner.closing = true;
-            owner.projection.last_error = Some(error.message);
+            .is_some_and(|owner| owner.needs_rebuild && !owner.rebuild_failed && !owner.closing);
+        if rebuild {
+            let _ = self.renew(id).await;
         }
-        let owner = self.owners.get_mut(id).unwrap();
+        let Some(owner) = self.owners.get_mut(id) else {
+            return;
+        };
         for reply in owner.cancel_replies.drain(..) {
             let _ = reply.send(Ok(json!({})));
         }
-        if owner.closing {
-            let owner = self.owners.remove(id).unwrap();
+        if owner.closing
+            && let Some(owner) = self.owners.remove(id)
+        {
             owner.session.unsubscribe(owner.subscription);
             let result = owner
                 .session
@@ -1694,6 +1733,23 @@ impl Host {
             }
         }
     }
+    /// Rebuild that keeps a stale owner registered on failure: the cause is recorded and
+    /// published as its error state, and only foreground admission retries.
+    async fn renew(&mut self, id: &str) -> Result<(), RpcError> {
+        let result = self.rebuild(id).await;
+        if let Err(error) = &result
+            && let Some(owner) = self.owners.get_mut(id)
+            && owner.needs_rebuild
+        {
+            owner.rebuild_failed = true;
+            owner.projection.last_error = Some(error.message.clone());
+            self.set_state(id, false, Some("error".into()));
+        }
+        result
+    }
+    /// Replaces the owner's live context from storage. Every fallible step concerns only
+    /// the replacement and precedes any change to the current owner, which a failure
+    /// leaves registered as it was.
     async fn rebuild(&mut self, id: &str) -> Result<(), RpcError> {
         let owner = self
             .owners
@@ -1713,22 +1769,31 @@ impl Host {
             .build_with_settings(manager, &settings)
             .await
             .map_err(RpcError::failed)?;
-        replacement
-            .set_scoped_models(scoped)
-            .map_err(RpcError::failed)?;
+        if let Err(error) = replacement.set_scoped_models(scoped) {
+            let _ = replacement.dispose().await;
+            return Err(RpcError::failed(error));
+        }
         replacement.set_steering_mode(steering);
         replacement.set_follow_up_mode(follow);
         replacement.set_auto_compaction_enabled(compact);
         replacement.set_auto_retry_enabled(retry);
-        let mut previous = self.owners.remove(id).expect("owned session");
-        previous.session.unsubscribe(previous.subscription);
-        previous.session.dispose().await.map_err(RpcError::failed)?;
-        let actual = self.register(replacement, loaded).await?;
-        debug_assert_eq!(actual, id);
-        let owner = self.owners.get_mut(id).unwrap();
-        owner.projection.settings = settings;
-        owner.cancel_replies = std::mem::take(&mut previous.cancel_replies);
-        if self.pi {
+        let mut next = self.prepare(replacement, loaded).await?;
+        debug_assert_eq!(next.session.session_id(), id);
+        next.projection.settings = settings;
+        if let Some(previous) = self.owners.get_mut(id) {
+            next.cancel_replies = std::mem::take(&mut previous.cancel_replies);
+            next.close_replies = std::mem::take(&mut previous.close_replies);
+        }
+        if let Some(previous) = self.owners.insert(id.to_owned(), next) {
+            previous.session.unsubscribe(previous.subscription);
+            // Disposal closes admission before its first await, so no result can reopen the
+            // stale context, and the replacement already holds the identity and the owed
+            // replies. A failed cleanup is therefore not a failed rebuild.
+            let _ = previous.session.dispose().await;
+        }
+        if self.pi
+            && let Some(owner) = self.owners.get_mut(id)
+        {
             let snapshot = owner
                 .projection
                 .snapshot(&owner.session, &self.application.models);
@@ -1906,7 +1971,65 @@ impl AuthInteraction for Interaction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{path::PathBuf, time::Duration};
+    use pi_coding_session::{Error, SessionCommit, SessionInfo, SessionSnapshot, SessionStore};
+    use std::{
+        cell::Cell,
+        path::PathBuf,
+        sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+        time::Duration,
+    };
+
+    thread_local! {
+        // Makes this unit test's next owner unobservable: its session is disposed
+        // between build and history observation.
+        static UNOBSERVABLE: Cell<bool> = const { Cell::new(false) };
+    }
+    pub(super) async fn before_observation(session: &CodingSession) {
+        if UNOBSERVABLE.with(|armed| armed.replace(false)) {
+            let _ = session.dispose().await;
+        }
+    }
+
+    /// Storage faults switched by a test. A failing user-message commit is the canonical
+    /// rejected input; a failing load keeps the replacement from opening.
+    #[derive(Default)]
+    struct Faults {
+        user_commit: AtomicBool,
+        load: AtomicBool,
+        loads: AtomicUsize,
+        on_commit_failure: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    }
+    struct Faulty {
+        inner: Arc<dyn SessionStore>,
+        faults: Arc<Faults>,
+    }
+    impl SessionStore for Faulty {
+        fn create(&self, snapshot: &SessionSnapshot) -> Result<(), Error> {
+            self.inner.create(snapshot)
+        }
+        fn load(&self, id: &str) -> Result<SessionSnapshot, Error> {
+            self.faults.loads.fetch_add(1, Ordering::SeqCst);
+            if self.faults.load.load(Ordering::SeqCst) {
+                return Err(Error::Invalid("synthetic load failure".into()));
+            }
+            self.inner.load(id)
+        }
+        fn commit(&self, id: &str, commit: &SessionCommit) -> Result<u64, Error> {
+            let user = commit.append.iter().any(|entry| {
+                matches!(&entry.content, EntryContent::Message { message } if message["role"] == "user")
+            });
+            if user && self.faults.user_commit.swap(false, Ordering::SeqCst) {
+                if let Some(hook) = self.faults.on_commit_failure.lock().unwrap().take() {
+                    hook();
+                }
+                return Err(Error::Invalid("synthetic user commit failure".into()));
+            }
+            self.inner.commit(id, commit)
+        }
+        fn list(&self, cwd: Option<&str>) -> Result<Vec<SessionInfo>, Error> {
+            self.inner.list(cwd)
+        }
+    }
 
     struct Root(PathBuf);
     impl Root {
@@ -1933,6 +2056,15 @@ mod tests {
             })
             .await
             .unwrap()
+        }
+        async fn faulty(&self) -> (Application, Arc<Faults>) {
+            let mut application = self.application().await;
+            let faults = Arc::new(Faults::default());
+            application.store = Arc::new(Faulty {
+                inner: application.store.clone(),
+                faults: faults.clone(),
+            });
+            (application, faults)
         }
     }
     impl Drop for Root {
@@ -1965,10 +2097,20 @@ mod tests {
         mpsc::UnboundedReceiver<Value>,
         String,
     ) {
+        open_with(root, root.application().await).await
+    }
+    async fn open_with(
+        root: &Root,
+        application: Application,
+    ) -> (
+        mpsc::UnboundedSender<Event>,
+        mpsc::UnboundedReceiver<Value>,
+        String,
+    ) {
         let (sender, output) = mpsc::unbounded_channel();
         let (tx, rx) = mpsc::unbounded_channel();
         let host = Host {
-            application: Arc::new(root.application().await),
+            application: Arc::new(application),
             contracts: Contracts::new(),
             tx: tx.clone(),
             rx,
@@ -2084,6 +2226,224 @@ mod tests {
                 .contains("should-not-run")
         );
         cancel.await.unwrap().unwrap();
+        shutdown(&tx).await;
+    }
+
+    fn prompt(
+        tx: &mpsc::UnboundedSender<Event>,
+        id: u64,
+        s: &str,
+        text: &str,
+    ) -> oneshot::Receiver<RpcResult> {
+        call(
+            tx,
+            json!(id),
+            "session/prompt",
+            json!({"sessionId":s,"prompt":[{"type":"text","text":text}]}),
+        )
+    }
+    /// Waits for the standard error state naming `cause` and the Pi state change after it.
+    async fn published_error(output: &mut mpsc::UnboundedReceiver<Value>, s: &str, cause: &str) {
+        let published = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let frame = output.recv().await?;
+                let update = &frame["params"]["update"];
+                if frame["params"]["sessionId"] == s
+                    && update["sessionUpdate"] == "state_update"
+                    && update["state"] == "idle"
+                    && update["stopReason"] == "error"
+                    && update["error"]["message"]
+                        .as_str()
+                        .is_some_and(|message| message.contains(cause))
+                {
+                    return output.recv().await;
+                }
+            }
+        })
+        .await;
+        let Ok(Some(changed)) = published else {
+            panic!("the rebuild failure {cause:?} must reach the client");
+        };
+        assert_eq!(changed["method"], "_pirua/session/changed", "{changed}");
+        assert_eq!(changed["params"]["changes"]["state"], "idle", "{changed}");
+    }
+    async fn snapshot_messages(tx: &mpsc::UnboundedSender<Event>, id: u64, s: &str) -> String {
+        call(
+            tx,
+            json!(id),
+            "_pirua/session/snapshot",
+            json!({"sessionId":s}),
+        )
+        .await
+        .unwrap()
+        .expect("the owner stays registered")["messages"]
+            .to_string()
+    }
+
+    #[tokio::test]
+    async fn a_rebuild_that_cannot_open_keeps_the_owner_and_retries_at_admission() {
+        let root = Root::new();
+        let (application, faults) = root.faulty().await;
+        let (tx, mut output, s) = open_with(&root, application).await;
+        faults.user_commit.store(true, Ordering::SeqCst);
+        faults.load.store(true, Ordering::SeqCst);
+        let error = prompt(&tx, 10, &s, "rejected first")
+            .await
+            .unwrap()
+            .expect_err("the user commit fails");
+        assert!(
+            error.message.contains("synthetic user commit failure"),
+            "{error:?}"
+        );
+        published_error(&mut output, &s, "synthetic load failure").await;
+        let attempted = faults.loads.load(Ordering::SeqCst);
+        // Registered and observable; later connection events do not retry the rebuild.
+        for id in [11, 12] {
+            assert!(
+                !snapshot_messages(&tx, id, &s)
+                    .await
+                    .contains("rejected first")
+            );
+        }
+        assert_eq!(faults.loads.load(Ordering::SeqCst), attempted);
+        // Each foreground admission retries once and fails with the cause, admitting nothing.
+        let admissions = [
+            (
+                "session/prompt",
+                json!({"sessionId":s,"prompt":[{"type":"text","text":"stale prompt"}]}),
+            ),
+            (
+                "_pirua/session/queue",
+                json!({"sessionId":s,"delivery":"followUp","prompt":[{"type":"text","text":"stale queue"}]}),
+            ),
+            (
+                "_pirua/session/bash",
+                json!({"sessionId":s,"command":"printf stale-shell"}),
+            ),
+        ];
+        for (index, (method, params)) in admissions.into_iter().enumerate() {
+            let error = call(&tx, json!(13 + index), method, params)
+                .await
+                .unwrap()
+                .expect_err("stale live context admits nothing");
+            assert!(
+                error.message.contains("synthetic load failure"),
+                "{method}: {error:?}"
+            );
+            assert_eq!(
+                faults.loads.load(Ordering::SeqCst),
+                attempted + 1 + index,
+                "{method}"
+            );
+        }
+        faults.load.store(false, Ordering::SeqCst);
+        let receipt = prompt(&tx, 20, &s, "recovered")
+            .await
+            .unwrap()
+            .expect("the rebuilt owner admits the prompt");
+        assert!(receipt["messageId"].is_string(), "{receipt}");
+        let messages = snapshot_messages(&tx, 21, &s).await;
+        assert!(messages.contains("recovered"), "{messages}");
+        for stale in [
+            "rejected first",
+            "stale prompt",
+            "stale queue",
+            "stale-shell",
+        ] {
+            assert!(!messages.contains(stale), "{stale}: {messages}");
+        }
+        shutdown(&tx).await;
+    }
+
+    #[tokio::test]
+    async fn a_replacement_that_cannot_be_observed_leaves_the_owner_and_answers_owed_replies() {
+        let root = Root::new();
+        let (application, faults) = root.faulty().await;
+        let (tx, mut output, s) = open_with(&root, application).await;
+        // Received at the failing commit itself: behind the prompt, ahead of its rejection,
+        // so this reply is still owed when the settled owner rebuilds.
+        let (reply, cancelled) = oneshot::channel();
+        let (sender, session) = (tx.clone(), s.clone());
+        *faults.on_commit_failure.lock().unwrap() = Some(Box::new(move || {
+            let _ = sender.send(Event::Call(Call {
+                id: json!(30),
+                method: "session/cancel".into(),
+                params: json!({"sessionId":session}),
+                reply,
+            }));
+        }));
+        faults.user_commit.store(true, Ordering::SeqCst);
+        UNOBSERVABLE.with(|armed| armed.set(true));
+        let error = prompt(&tx, 31, &s, "rejected first")
+            .await
+            .unwrap()
+            .expect_err("the user commit fails");
+        assert!(
+            error.message.contains("synthetic user commit failure"),
+            "{error:?}"
+        );
+        tokio::time::timeout(Duration::from_secs(5), cancelled)
+            .await
+            .expect("the cancel settles")
+            .expect("the owed cancel reply is answered")
+            .unwrap();
+        published_error(&mut output, &s, "CodingSession is disposed").await;
+        assert!(
+            !UNOBSERVABLE.with(Cell::get),
+            "the rebuild reached observation"
+        );
+        assert!(
+            !snapshot_messages(&tx, 32, &s)
+                .await
+                .contains("rejected first")
+        );
+        call(
+            &tx,
+            json!(33),
+            "session/new",
+            json!({"cwd":root.0.to_string_lossy()}),
+        )
+        .await
+        .unwrap()
+        .expect("the connection keeps serving");
+        let receipt = prompt(&tx, 34, &s, "recovered")
+            .await
+            .unwrap()
+            .expect("the retried rebuild admits the prompt");
+        assert!(receipt["messageId"].is_string(), "{receipt}");
+        shutdown(&tx).await;
+    }
+
+    #[tokio::test]
+    async fn a_stale_owner_still_answers_cancel_and_close() {
+        let root = Root::new();
+        let (application, faults) = root.faulty().await;
+        let (tx, mut output, s) = open_with(&root, application).await;
+        faults.user_commit.store(true, Ordering::SeqCst);
+        faults.load.store(true, Ordering::SeqCst);
+        prompt(&tx, 40, &s, "rejected first")
+            .await
+            .unwrap()
+            .expect_err("the user commit fails");
+        published_error(&mut output, &s, "synthetic load failure").await;
+        call(&tx, json!(41), "session/cancel", json!({"sessionId":s}))
+            .await
+            .unwrap()
+            .expect("cancel is answered");
+        call(&tx, json!(42), "session/close", json!({"sessionId":s}))
+            .await
+            .unwrap()
+            .expect("close is answered");
+        let error = call(
+            &tx,
+            json!(43),
+            "_pirua/session/snapshot",
+            json!({"sessionId":s}),
+        )
+        .await
+        .unwrap()
+        .expect_err("the closed owner is gone");
+        assert_eq!(error.code, -32602, "{error:?}");
         shutdown(&tx).await;
     }
 
