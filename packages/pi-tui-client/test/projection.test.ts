@@ -200,4 +200,19 @@ describe("original Pi presentation projection", () => {
 		expect(reasons).toEqual(["History revision mismatch"]);
 		expect(p.value.history.revision).toBe(0);
 	});
+	it("replaces configuration options from a standard config_option_update", () => {
+		const p = new SessionProjection(snapshot());
+		const configOptions = [
+			{
+				configId: "thinkingLevel",
+				name: "Thinking",
+				type: "select",
+				currentValue: "high",
+				options: [{ value: "high", name: "High" }],
+			},
+		];
+		p.receive("session/update", update(1, { sessionUpdate: "config_option_update", configOptions }));
+		expect(p.value.configOptions).toEqual(configOptions);
+		expect(p.value.sequence).toBe(1);
+	});
 });

@@ -411,7 +411,7 @@ export class SessionProjection {
 			}
 			return;
 		}
-		if (kind === "config_options_update") {
+		if (kind === "config_option_update") {
 			this.value.configOptions = structuredClone(update.configOptions ?? []);
 			return;
 		}
