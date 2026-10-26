@@ -12,6 +12,10 @@ export class RpcError extends Error {
 		this.data = data;
 	}
 }
+// How long an aborted request still waits for the server's reply before it ends locally. The server
+// cancels a shell or turn within milliseconds (SIGKILL, then a 5 ms poll), so this only has to cover a
+// busy server; much longer would stretch deadlines such as AbortSignal.timeout(15000) noticeably.
+export const CANCEL_GRACE_MS = 2000;
 interface Pending {
 	resolve: (v: any) => void;
 	reject: (e: Error) => void;
@@ -56,10 +60,22 @@ export class AcpClient {
 		if (signal?.aborted) return Promise.reject(signal.reason ?? new Error("Request cancelled"));
 		const id = this.nextId++;
 		return new Promise<T>((resolve, reject) => {
+			let grace: ReturnType<typeof setTimeout> | undefined;
 			const abort = () => {
+				// The reply may still carry a result worth keeping (a cancelled shell reports its output),
+				// but a server that stays silent must not hold the caller past its own deadline.
+				grace = setTimeout(() => {
+					if (this.pending.delete(id)) {
+						cleanup();
+						reject(signal?.reason ?? new Error("Request cancelled"));
+					}
+				}, CANCEL_GRACE_MS);
 				this.notify("$/cancel_request", { requestId: id });
 			};
-			const cleanup = () => signal?.removeEventListener("abort", abort);
+			const cleanup = () => {
+				signal?.removeEventListener("abort", abort);
+				clearTimeout(grace);
+			};
 			this.pending.set(id, { resolve, reject, cleanup });
 			signal?.addEventListener("abort", abort, { once: true });
 			try {
