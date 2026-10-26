@@ -6056,6 +6056,8 @@ export class InteractiveMode {
 			if (this.bashComponent) {
 				this.bashComponent.setComplete(undefined, false);
 			}
+			// Nothing was recorded for this row, so no later snapshot may carry it to the end of the chat.
+			if (this.bashSnapshotRow?.component === this.bashComponent) this.bashSnapshotRow = undefined;
 			this.showError(`Bash command failed: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 

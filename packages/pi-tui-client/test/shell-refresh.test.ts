@@ -118,6 +118,49 @@ it("retains a completed callback row through a covered running snapshot, then re
   }
 });
 
+it("does not carry a shell row that failed before it was recorded into later snapshots", async () => {
+  initTheme("dark");
+  const client = new AcpClient(new PassThrough(), new PassThrough());
+  const host = new TuiRuntimeHost(client, {
+    cwd: "/unused",
+    settings: new ClientSettings("/unused/shell-ui.json"),
+  });
+  host.session = new TuiSession(host, snapshot());
+  const ui: any = new InteractiveMode(host, {
+    terminal: new VirtualTerminal(100, 30),
+    tuiMode: "regular",
+  });
+  ui.isInitialized = true;
+  vi.spyOn(host.session, "executeBash").mockRejectedValue(
+    new Error("spawn failed"),
+  );
+  const reconcile = () =>
+    ui.handleEvent({
+      type: "snapshot_reconciled",
+      entries: host.session.sessionManager.buildContextEntries(),
+      activeEvents: [],
+      state: "idle",
+      activity: host.session.projection.value.activity,
+    });
+  const rows = () =>
+    ui.chatContainer.children.filter(
+      (row: any) => row instanceof BashExecutionComponent,
+    );
+  try {
+    await ui.handleBashCommand("never-spawned");
+    expect(rows()).toHaveLength(1);
+    expect(ui.bashSnapshotRow).toBeUndefined();
+    for (let i = 0; i < 2; i++) {
+      await reconcile();
+      expect(rows()).toHaveLength(0);
+    }
+  } finally {
+    ui.stop();
+    host.session.dispose();
+    client.close();
+  }
+});
+
 const binary = process.env.PIRUA_TEST_SERVER;
 describe.skipIf(!binary)(
   "manual shell snapshot reconciliation with the real host",
