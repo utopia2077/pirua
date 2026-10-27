@@ -74,6 +74,42 @@ describe.skipIf(!binary)("session replacement with the real Rust host", () => {
 			await rm(directory, { recursive: true, force: true });
 		}
 	}, 20000);
+
+	it("forks a session whose turn is still running by cancelling it first", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "pirua-tui-fork-"));
+		const child = spawn(
+			binary!,
+			["--data-dir", directory, "--config-dir", join(directory, "config"), "--fixture-provider"],
+			{ stdio: ["pipe", "pipe", "pipe"] },
+		);
+		const client = new AcpClient(child.stdout, child.stdin);
+		child.on("error", (e) => client.fail(e));
+		const host = new TuiRuntimeHost(client, {
+			child,
+			cwd: directory,
+			settings: new ClientSettings(join(directory, "ui.json")),
+		});
+		try {
+			await host.initialize();
+			const first = host.session;
+			// The fixture provider streams until cancelled, standing in for a slow turn.
+			await first.prompt("fixture:block");
+			expect(first.isStreaming).toBe(true);
+			let user: { id: string } | undefined;
+			await vi.waitFor(() => {
+				user = first.sessionManager.getBranch().find((e) => e.type === "message" && e.message.role === "user");
+				expect(user).toBeDefined();
+			});
+			const fork = await host.fork(user!.id);
+			expect(fork.selectedText).toBe("fixture:block");
+			expect(host.session.sessionId).toBe(fork.sessionId);
+			expect(host.session.sessionId).not.toBe(first.sessionId);
+			expect(host.session.isIdle).toBe(true);
+		} finally {
+			await host.dispose();
+			await rm(directory, { recursive: true, force: true });
+		}
+	}, 20000);
 });
 
 type Handler = (method: string, params: RecordValue) => unknown;
@@ -404,6 +440,51 @@ describe("session replacement lifecycle", () => {
 		fake.notify("s1", 2, { sessionUpdate: "state_update", state: "idle", stopReason: "end_turn" });
 		await vi.waitFor(() => expect(current.isIdle).toBe(true));
 		expect(current.projection.value.sequence).toBe(2);
+		client.close();
+	});
+
+	it("cancels a running turn and waits for idle before forking, using the revision after the aborted turn", async () => {
+		let idle = false;
+		let forked: RecordValue | undefined;
+		const { client, host, requests, notify, closes } = fakeHost((method, params) => {
+			if (method === "_pirua/session/fork") {
+				if (!idle) throw new RpcError(-32000, "Session foreground work is active");
+				forked = params;
+				return { sessionId: "s2", cancelled: false, snapshot: target("s2"), editorText: "retry this" };
+			}
+			if (method === "session/close") return {};
+		});
+		host.features = new Set(["tree"]);
+		const first = host.session;
+		notify("s1", 1, { sessionUpdate: "state_update", state: "running" });
+		await vi.waitFor(() => expect(first.isStreaming).toBe(true));
+		const fork = host.fork("user-1");
+		await vi.waitFor(() => expect(requests.map((r) => r.method)).toEqual(["session/cancel"]));
+		await tick();
+		// Nothing is asked of the server while the turn is still winding down.
+		expect(requests.map((r) => r.method)).toEqual(["session/cancel"]);
+		// The server records the aborted turn, then settles.
+		idle = true;
+		first.receive("_pirua/session/changed", {
+			sessionId: "s1",
+			epoch: "epoch1",
+			sequence: 2,
+			historyChange: {
+				kind: "append",
+				baseRevision: 0,
+				revision: 1,
+				leafId: "aborted-1",
+				appended: [
+					{ id: "aborted-1", parentId: null, timestamp: 1000, type: "message", message: { role: "assistant" } },
+				],
+			},
+		});
+		notify("s1", 3, { sessionUpdate: "state_update", state: "idle", stopReason: "cancelled" });
+		await expect(fork).resolves.toMatchObject({ sessionId: "s2", selectedText: "retry this" });
+		expect(forked).toEqual({ sessionId: "s1", entryId: "user-1", position: "before", expectedRevision: 1 });
+		expect(requests.map((r) => r.method)).toEqual(["session/cancel", "_pirua/session/fork", "session/close"]);
+		expect(host.session.sessionId).toBe("s2");
+		expect(closes()).toEqual(["s1"]);
 		client.close();
 	});
 });

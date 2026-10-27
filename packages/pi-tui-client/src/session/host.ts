@@ -156,11 +156,18 @@ export class TuiRuntimeHost {
 		options: { position?: "before" | "at" } = {},
 	): Promise<SessionChange & { selectedText?: string }> {
 		this.require("tree");
+		const source = this.session;
+		// Like upstream teardownCurrent(): the host forks only an idle session, so a running turn is
+		// cancelled and settled first. The revision is read afterwards, as the aborted turn is recorded.
+		if (!source.isIdle) {
+			await source.abort();
+			if (this.session !== source) throw new Error("The session changed before it could be forked");
+		}
 		const change = await this.client.request<SessionChange>("_pirua/session/fork", {
-			sessionId: this.session.sessionId,
+			sessionId: source.sessionId,
 			entryId,
 			position: options.position ?? "before",
-			expectedRevision: this.session.projection.value.history.revision,
+			expectedRevision: source.projection.value.history.revision,
 		});
 		await this.applySessionChange(change);
 		return { ...change, selectedText: change.editorText };
