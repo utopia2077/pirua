@@ -55,6 +55,8 @@ export interface PiSnapshot {
 	settings: RecordValue;
 	resources: RecordValue;
 	tools: RecordValue[];
+	// The host's current authentication methods, shaped like those of `initialize`; older hosts omit them.
+	authMethods?: RecordValue[];
 }
 export interface SessionChange {
 	sessionId: string;

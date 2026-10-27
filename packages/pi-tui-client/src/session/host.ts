@@ -61,6 +61,10 @@ export class TuiRuntimeHost {
 		if (!this.features.has(feature))
 			throw new RpcError(-32050, `Rust host does not advertise the ${feature} capability`, { kind: "unsupported" });
 	}
+	// Snapshots carry the host's current authentication methods; a host that omits them keeps the last list.
+	adoptAuthMethods(snapshot: { authMethods?: RecordValue[] }): void {
+		if (Array.isArray(snapshot.authMethods)) this.authMethods = snapshot.authMethods;
+	}
 	setBeforeSessionInvalidate(fn: () => void): void {
 		this.beforeInvalidate = fn;
 	}

@@ -43,6 +43,7 @@ export class TuiSession {
 		this.modelRuntime = new ModelRuntime(host);
 		this.resourceLoader = new ResourceView(() => this.projection.value);
 		host.options.settings.setBackend(snapshot.settings);
+		host.adoptAuthMethods(snapshot);
 		this.unsub = this.projection.subscribe((event) => this.emit(event));
 		this.projection.onResync = () => void this.resync();
 		this.projection.onSessionError = (message) => this.enqueue(() => this.fail(new Error(message)));
@@ -189,6 +190,11 @@ export class TuiSession {
 			this.fail(error);
 		}
 	}
+	// Installs a full snapshot, which also brings the host's authentication methods up to date.
+	private install(snapshot: PiSnapshot): void {
+		this.projection.install(snapshot);
+		this.host.adoptAuthMethods(snapshot);
+	}
 	async refresh(signal?: AbortSignal): Promise<void> {
 		this.projection.beginHydration();
 		this.snapshotRequests++;
@@ -196,7 +202,7 @@ export class TuiSession {
 			const snapshot = await this.host.client
 				.request<PiSnapshot>("_pirua/session/snapshot", { sessionId: this.sessionId }, signal)
 				.finally(() => this.snapshotRequests--);
-			this.projection.install(snapshot);
+			this.install(snapshot);
 		} catch (error) {
 			// Another pending snapshot still covers the buffered updates; otherwise apply them now.
 			if (!this.snapshotRequests) this.projection.abandonHydration();
@@ -351,7 +357,7 @@ export class TuiSession {
 			label: label ?? null,
 			expectedRevision: this.projection.value.history.revision,
 		});
-		this.projection.install(result.snapshot);
+		this.install(result.snapshot);
 	}
 	async setSessionName(name: string): Promise<void> {
 		await this.host.renameSession(this.sessionId, name);
@@ -422,7 +428,7 @@ export class TuiSession {
 			sessionId: this.sessionId,
 			models: models.map((s) => ({ provider: s.model.provider, modelId: s.model.id, thinkingLevel: s.thinkingLevel })),
 		});
-		this.projection.install(response.snapshot);
+		this.install(response.snapshot);
 	}
 	getUserMessagesForForking(): { entryId: string; text: string }[] {
 		return this.sessionManager.getBranch().flatMap((e) =>
@@ -480,7 +486,7 @@ export class TuiSession {
 		const result = await this.host.client.request<{ snapshot: PiSnapshot }>("_pirua/session/reload", {
 			sessionId: this.sessionId,
 		});
-		this.projection.install(result.snapshot);
+		this.install(result.snapshot);
 	}
 	async executeBash(
 		command: string,

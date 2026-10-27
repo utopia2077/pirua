@@ -32,12 +32,16 @@ export class ModelRuntime {
 			.map((m) => {
 				const parts = m.methodId.split(":");
 				const authType = parts.at(-1)?.toLowerCase() === "oauth" ? "oauth" : "api_key";
+				// Like upstream getLoginProviderOptions: `status` is the provider's configured auth, `subscription`
+				// whether its OAuth sign-in is a subscription. A host that does not say leaves both unset.
+				const auth = m._meta?.["pirua.dev/auth"];
 				return {
 					id: parts.slice(0, -1).join(":"),
 					name: m.name,
 					authType,
 					method: { id: m.methodId, description: m.description },
-					status: m._meta?.["pirua.dev/auth"]?.status,
+					status: auth?.status,
+					subscription: typeof auth?.subscription === "boolean" ? auth.subscription : undefined,
 				};
 			});
 	}
@@ -67,8 +71,11 @@ export class ModelRuntime {
 		await this.host.client.request("auth/logout", {}, options.signal);
 		await this.host.session.refresh();
 	}
+	// Upstream: the configured credential is OAuth and the provider's OAuth sign-in is a subscription.
 	isUsingSubscription(provider: string): boolean {
-		return !!this.getAuthOptions().find((o) => o.id === provider && o.subscription && o.status);
+		return (
+			this.isUsingOAuth(provider) && this.getAuthOptions().some((o) => o.id === provider && o.subscription === true)
+		);
 	}
 	isUsingOAuth(provider: string): boolean {
 		return this.getAuthOptions().some((o) => o.id === provider && o.status?.type === "oauth");
