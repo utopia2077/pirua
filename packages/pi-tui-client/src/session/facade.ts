@@ -45,6 +45,7 @@ export class TuiSession {
 		host.options.settings.setBackend(snapshot.settings);
 		this.unsub = this.projection.subscribe((event) => this.emit(event));
 		this.projection.onResync = () => void this.resync();
+		this.projection.onSessionError = (message) => this.enqueue(() => this.fail(new Error(message)));
 		this.projection.onTerminal = (terminal) => {
 			const output = terminal.output;
 			const data = typeof output === "string" ? output : (output?.data ?? "");
@@ -162,13 +163,18 @@ export class TuiSession {
 		const e = error instanceof Error ? error : new Error(String(error));
 		for (const listener of this.errors) listener(e);
 	}
-	private emit(event: AgentSessionEvent): void {
+	// Runs after everything already queued, so it reaches the UI behind the events it follows.
+	private enqueue(task: () => Promise<void> | void): void {
 		this.events = this.events
 			.then(async () => {
-				if (this.closed) return;
-				for (const listener of this.listeners) await listener(structuredClone(event));
+				if (!this.closed) await task();
 			})
 			.catch((error) => this.fail(error));
+	}
+	private emit(event: AgentSessionEvent): void {
+		this.enqueue(async () => {
+			for (const listener of this.listeners) await listener(structuredClone(event));
+		});
 	}
 	subscribe(listener: (event: AgentSessionEvent) => Promise<void> | void): () => void {
 		this.listeners.add(listener);

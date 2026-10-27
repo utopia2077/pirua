@@ -202,3 +202,85 @@ describe("snapshot refresh failure", () => {
 		}
 	});
 });
+const failed = (sequence: number, message: string) =>
+	update(sequence, {
+		sessionUpdate: "state_update",
+		state: "idle",
+		stopReason: "error",
+		error: { code: -32000, message },
+	});
+describe("errors reported by an idle session", () => {
+	it("surfaces a new error state once, not again for repeats or snapshot replays", async () => {
+		const h = harness();
+		try {
+			// The owner could not be rebuilt: idle stays idle, but with an error.
+			h.session.receive("session/update", failed(1, "rebuild failed"));
+			await tick();
+			expect(h.errors).toEqual(["rebuild failed"]);
+			expect(h.events.map((e) => e.type)).not.toContain("agent_settled");
+			// The retried rebuild fails with the same cause again, live and then while a snapshot loads.
+			h.session.receive("session/update", failed(2, "rebuild failed"));
+			const covering = h.session.refresh();
+			await tick();
+			h.session.receive("session/update", failed(3, "rebuild failed"));
+			h.respond(h.snapshots()[0], { result: snapshot({ sequence: 3, state: "idle" }) });
+			await covering;
+			// Replays of the idle snapshot keep the known outcome instead of reporting it afresh.
+			for (let i = 1; i < 3; i++) {
+				const replay = h.session.refresh();
+				await tick();
+				h.respond(h.snapshots()[i], { result: snapshot({ sequence: 3, state: "idle" }) });
+				await replay;
+			}
+			await tick();
+			expect(h.errors).toEqual(["rebuild failed"]);
+			h.session.receive("session/update", failed(4, "a different cause"));
+			await tick();
+			expect(h.errors).toEqual(["rebuild failed", "a different cause"]);
+		} finally {
+			h.dispose();
+		}
+	});
+	it("leaves a turn that ends in error to its own settlement, live or covered by a snapshot", async () => {
+		const h = harness();
+		try {
+			h.session.receive("session/update", update(1, { sessionUpdate: "state_update", state: "running" }));
+			h.session.receive("session/update", failed(2, "provider failed"));
+			await tick();
+			expect(h.events).toContainEqual(
+				expect.objectContaining({ type: "agent_settled", aborted: false, errorMessage: "provider failed" }),
+			);
+			// A whole turn that starts and ends while a snapshot is loading is no idle-session error either.
+			const refresh = h.session.refresh();
+			await tick();
+			h.session.receive("session/update", update(3, { sessionUpdate: "state_update", state: "running" }));
+			h.session.receive("session/update", failed(4, "second provider failure"));
+			h.respond(h.snapshots()[0], { result: snapshot({ sequence: 4, state: "idle" }) });
+			await refresh;
+			await tick();
+			expect(h.errors).toEqual([]);
+		} finally {
+			h.dispose();
+		}
+	});
+	it("surfaces an error state that only a snapshot covers, after the transcript it rebuilds", async () => {
+		const h = harness();
+		const log: string[] = [];
+		h.session.subscribe((e) => {
+			log.push(e.type);
+		});
+		h.session.onError((e) => log.push("error: " + e.message));
+		try {
+			const refresh = h.session.refresh();
+			await tick();
+			h.session.receive("session/update", failed(1, "rebuild failed"));
+			h.respond(h.snapshots()[0], { result: snapshot({ sequence: 1, state: "idle" }) });
+			await refresh;
+			await tick();
+			expect(h.errors).toEqual(["rebuild failed"]);
+			expect(log).toEqual(["snapshot_reconciled", "error: rebuild failed"]);
+		} finally {
+			h.dispose();
+		}
+	});
+});

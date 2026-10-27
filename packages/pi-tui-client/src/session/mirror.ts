@@ -100,6 +100,8 @@ export class SessionProjection {
 	private listeners = new Set<(event: AgentSessionEvent) => void>();
 	onResync: ((reason: string) => void) | undefined;
 	onTerminal: ((terminal: RecordValue) => void) | undefined;
+	// An error the session reports while idle, which no turn settlement carries to the user.
+	onSessionError: ((message: string) => void) | undefined;
 	private hydrating = false;
 	private needsSnapshot = false;
 	private buffered: { method: string; params: RecordValue }[] = [];
@@ -144,6 +146,7 @@ export class SessionProjection {
 		)
 			throw new Error("Invalid Pi snapshot");
 		const previousState = this.value.state;
+		const earlier = this.lastSettlement;
 		const settlement = snapshot.state === "idle" ? this.snapshotSettlement(snapshot) : undefined;
 		this.lastSettlement = settlement;
 		const previousEpoch = this.value.epoch;
@@ -177,7 +180,17 @@ export class SessionProjection {
 			this.finishCompaction(coveredCompaction);
 		}
 		if (previousState !== "idle" && settlement) this.emit({ type: "agent_settled", ...settlement });
+		else if (previousState === "idle" && snapshot.state === "idle") {
+			// An error state the snapshot covers is still news unless the covered updates ended a turn.
+			const covered = this.coveredStateUpdates(snapshot);
+			if (covered.every((update) => update.state === "idle"))
+				this.reportSessionError(this.stateSettlement(covered.at(-1))?.errorMessage, earlier?.errorMessage);
+		}
 		this.release();
+	}
+	// An error that is not the one already reported, for a session that was idle before and stays idle.
+	private reportSessionError(message: string | undefined, reported: string | undefined): void {
+		if (message && message !== reported) this.onSessionError?.(message);
 	}
 	private stateSettlement(update: RecordValue | undefined): SessionSettlement | undefined {
 		if (update?.state !== "idle") return;
@@ -187,19 +200,23 @@ export class SessionProjection {
 		if (update.stopReason === "end_turn" || update.stopReason === "max_tokens") return { aborted: false };
 	}
 
-	private snapshotSettlement(snapshot: PiSnapshot): SessionSettlement | undefined {
-		// Covered standard state updates carry outcomes for shell/compaction cancellation too.
-		const terminal = [...this.buffered]
-			.reverse()
-			.find(
+	// The held state updates the snapshot already includes, oldest first.
+	private coveredStateUpdates(snapshot: PiSnapshot): RecordValue[] {
+		return this.buffered
+			.filter(
 				({ method, params }) =>
 					method === "session/update" &&
 					params.sessionId === snapshot.sessionId &&
 					params._meta?.[PROJECTION]?.epoch === snapshot.epoch &&
 					params._meta[PROJECTION].sequence <= snapshot.sequence &&
 					params.update?.sessionUpdate === "state_update",
-			)?.params.update;
-		const expressed = this.stateSettlement(terminal);
+			)
+			.map(({ params }) => params.update);
+	}
+
+	private snapshotSettlement(snapshot: PiSnapshot): SessionSettlement | undefined {
+		// Covered standard state updates carry outcomes for shell/compaction cancellation too.
+		const expressed = this.stateSettlement(this.coveredStateUpdates(snapshot).at(-1));
 		if (expressed) return expressed;
 		// A repeated idle snapshot retains its known outcome until another run/activation.
 		const retained =
@@ -388,6 +405,7 @@ export class SessionProjection {
 		if (kind === "state_update") {
 			if (!["idle", "running", "requires_action"].includes(update.state)) return;
 			const previous = this.value.state;
+			const earlier = this.lastSettlement;
 			this.value.state = update.state;
 			this.lastSettlement = update.state === "idle" ? this.stateSettlement(update) : undefined;
 			if (emit && previous === "idle" && update.state !== "idle") {
@@ -409,6 +427,9 @@ export class SessionProjection {
 					errorMessage: this.lastSettlement?.errorMessage,
 				});
 			}
+			// A failure of the idle session itself, such as a rebuild that could not replace its context.
+			if (emit && previous === "idle" && update.state === "idle")
+				this.reportSessionError(this.lastSettlement?.errorMessage, earlier?.errorMessage);
 			return;
 		}
 		if (kind === "config_option_update") {
