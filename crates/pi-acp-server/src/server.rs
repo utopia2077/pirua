@@ -1901,6 +1901,47 @@ fn auth_error(error: pi_ai::AuthResolutionError) -> RpcError {
         error => RpcError::failed(error),
     }
 }
+/// The readable form of an authentication event for a client that ignores `_meta`: every
+/// piece of data the user must act on appears in the text.
+fn auth_message(event: &Value) -> String {
+    let text = |key: &str| event[key].as_str();
+    match event["type"].as_str() {
+        Some("auth_url") if text("url").is_some() => format!(
+            "{}\n{}",
+            text("instructions").unwrap_or("Open this authorization URL"),
+            text("url").unwrap()
+        ),
+        Some("device_code") => {
+            let mut message = format!(
+                "Open {} and enter code: {}",
+                text("verificationUri").unwrap_or_default(),
+                text("userCode").unwrap_or_default()
+            );
+            if let Some(seconds) = event["expiresInSeconds"].as_u64() {
+                message.push_str(&format!("\nThe code expires in {seconds} seconds."));
+            }
+            message
+        }
+        Some("info") => {
+            let mut message = text("message").unwrap_or_default().to_owned();
+            for link in event["links"].as_array().into_iter().flatten() {
+                match link["label"].as_str() {
+                    Some(label) => message.push_str(&format!(
+                        "\n{label}: {}",
+                        link["url"].as_str().unwrap_or_default()
+                    )),
+                    None => {
+                        message.push_str(&format!("\n{}", link["url"].as_str().unwrap_or_default()))
+                    }
+                }
+            }
+            message
+        }
+        _ => text("message")
+            .unwrap_or("Authentication in progress")
+            .to_owned(),
+    }
+}
 impl AuthInteraction for Interaction {
     fn prompt<'a>(
         &'a self,
@@ -1949,20 +1990,7 @@ impl AuthInteraction for Interaction {
         let value = serde_json::to_value(event).map_err(AuthInteractionError::with_source)?;
         let index = self.next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let id = json!(format!("auth-info:{}:{index}", self.request));
-        let message = if let Some(url) = value["url"].as_str() {
-            format!(
-                "{}\n{}",
-                value["instructions"]
-                    .as_str()
-                    .unwrap_or("Open this authorization URL"),
-                url
-            )
-        } else {
-            value["message"]
-                .as_str()
-                .unwrap_or("Authentication in progress")
-                .to_owned()
-        };
+        let message = auth_message(&value);
         self.output.send(json!({"jsonrpc":"2.0","id":id,"method":"elicitation/create","params":{"mode":"form","requestId":self.request,"message":message,"requestedSchema":{"type":"object","properties":{}},"_meta":{"pirua.dev/auth":{"event":value}}}})).map_err(|_|AuthInteractionError::new())?;
         Ok(())
     }
@@ -2530,11 +2558,29 @@ mod tests {
             request: json!(7),
             next: std::sync::atomic::AtomicU64::new(0),
         };
-        for event in [
-            json!({"type":"auth_url","url":"https://example.invalid/authorize","instructions":"Open the link"}),
-            json!({"type":"device_code","userCode":"SYNTHETIC","verificationUri":"https://example.invalid/device","intervalSeconds":5,"expiresInSeconds":60}),
-            json!({"type":"info","message":"Read the instructions","links":[{"label":"Help","url":"https://example.invalid/help"}]}),
-            json!({"type":"progress","message":"Waiting for synthetic authorization"}),
+        for (event, shown) in [
+            (
+                json!({"type":"auth_url","url":"https://example.invalid/authorize","instructions":"Open the link"}),
+                vec!["Open the link", "https://example.invalid/authorize"],
+            ),
+            // A client that ignores `_meta` must still be able to finish the flow.
+            (
+                json!({"type":"device_code","userCode":"SYNTHETIC","verificationUri":"https://example.invalid/device","intervalSeconds":5,"expiresInSeconds":60}),
+                vec!["SYNTHETIC", "https://example.invalid/device", "60"],
+            ),
+            (
+                json!({"type":"info","message":"Read the instructions","links":[{"label":"Help","url":"https://example.invalid/help"},{"url":"https://example.invalid/bare"}]}),
+                vec![
+                    "Read the instructions",
+                    "Help",
+                    "https://example.invalid/help",
+                    "https://example.invalid/bare",
+                ],
+            ),
+            (
+                json!({"type":"progress","message":"Waiting for synthetic authorization"}),
+                vec!["Waiting for synthetic authorization"],
+            ),
         ] {
             interaction
                 .notify(serde_json::from_value(event.clone()).unwrap())
@@ -2546,7 +2592,10 @@ mod tests {
             assert_eq!(frame["params"]["mode"], "form");
             assert_eq!(frame["params"]["requestId"], 7);
             assert_eq!(frame["params"]["requestedSchema"]["properties"], json!({}));
-            assert!(!frame["params"]["message"].as_str().unwrap().is_empty());
+            let message = frame["params"]["message"].as_str().unwrap();
+            for part in shown {
+                assert!(message.contains(part), "{part} missing from {message:?}");
+            }
             assert_eq!(frame["params"]["_meta"]["pirua.dev/auth"]["event"], event);
             assert!(reverse.lock().unwrap().is_empty());
         }

@@ -466,6 +466,9 @@ the original non-secret URL, device-code, info or progress event for the origina
 login dialog. The client displays the message when this metadata is absent and
 does not require an extra confirmation for a notification. Nonempty forms retain
 their input semantics; request or dialog cancellation produces a cancelled result.
+The message is self-contained for every event kind: a device code shows its user code
+and verification URI, an info event its message and links, so a client that ignores
+`_meta` can finish the flow.
 Retain client-local component factories through a presentation registry, without
 loading the unrestricted upstream backend extension runner.
 
