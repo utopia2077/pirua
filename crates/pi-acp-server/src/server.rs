@@ -74,6 +74,8 @@ enum Event {
         Result<Vec<pi_coding_runtime::QueuedInput>, String>,
         Option<Reply>,
     ),
+    /// An `auth/login` or `auth/logout` task ended: its request id and generation.
+    Auth(String, u64),
     Shutdown(oneshot::Sender<()>),
 }
 enum OperationResult {
@@ -120,7 +122,10 @@ struct Host {
     owners: BTreeMap<String, Owner>,
     pending: BTreeMap<String, Pending>,
     tasks: JoinSet<()>,
-    auth: BTreeMap<String, CancellationToken>,
+    /// Cancellation of each running `auth/login` or `auth/logout`, by request id. The
+    /// generation tells a request id's earlier run from its current one.
+    auth: BTreeMap<String, (u64, CancellationToken)>,
+    auth_generation: u64,
 }
 
 pub async fn serve<R, W>(application: Application, input: R, output: W) -> Result<(), AppError>
@@ -177,6 +182,7 @@ where
         pending: BTreeMap::new(),
         tasks: JoinSet::new(),
         auth: BTreeMap::new(),
+        auth_generation: 0,
     };
     let actor = tokio::spawn(host.run());
     let mut lines = BufReader::new(input).split(b'\n');
@@ -388,6 +394,7 @@ impl Host {
                         self.maybe_close(&id).await;
                     }
                 }
+                Event::Auth(key, generation) => self.auth_finished(&key, generation),
                 Event::Shutdown(done) => {
                     for pending in self.pending.values() {
                         pending.cancel.cancel();
@@ -399,7 +406,7 @@ impl Host {
                             token.cancel();
                         }
                     }
-                    for token in self.auth.values() {
+                    for (_, token) in self.auth.values() {
                         token.cancel();
                     }
                     for owner in self.owners.values() {
@@ -703,7 +710,7 @@ impl Host {
                 if let Some(p) = self.pending.get(&request) {
                     p.cancel.cancel();
                 }
-                if let Some(token) = self.auth.get(&request) {
+                if let Some((_, token)) = self.auth.get(&request) {
                     token.cancel();
                 }
                 for owner in self.owners.values() {
@@ -890,8 +897,7 @@ impl Host {
                 let registry = self.application.registry.clone().ok_or_else(|| {
                     RpcError::app("unsupported", "Fixture provider has no authentication")
                 })?;
-                let token = CancellationToken::new();
-                self.auth.insert(key.into(), token.clone());
+                let (generation, token) = self.begin_auth(key);
                 let interaction = Interaction {
                     output: self.output.clone(),
                     reverse: self.reverse.clone(),
@@ -900,12 +906,15 @@ impl Host {
                     login: token.clone(),
                 };
                 let reply = reply.take().unwrap();
+                let (tx, key) = (self.tx.clone(), key.to_owned());
                 self.tasks.spawn(async move {
                     let result = registry
                         .login(&provider, auth_type, &interaction, &token)
                         .await
                         .map(|_| json!({}))
                         .map_err(auth_error);
+                    // Settled before the reply, so whatever the client asks next sees it.
+                    let _ = tx.send(Event::Auth(key, generation));
                     let _ = reply.send(result);
                 });
                 Ok(None)
@@ -921,9 +930,9 @@ impl Host {
                 let registry = self.application.registry.clone().ok_or_else(|| {
                     RpcError::app("unsupported", "Fixture provider has no authentication")
                 })?;
-                let token = CancellationToken::new();
-                self.auth.insert(key.into(), token.clone());
+                let (generation, token) = self.begin_auth(key);
                 let reply = reply.take().unwrap();
+                let (tx, key) = (self.tx.clone(), key.to_owned());
                 self.tasks.spawn(async move {
                     let mut result = Ok(json!({}));
                     for p in registry.get_providers() {
@@ -932,6 +941,7 @@ impl Host {
                             break;
                         }
                     }
+                    let _ = tx.send(Event::Auth(key, generation));
                     let _ = reply.send(result);
                 });
                 Ok(None)
@@ -1838,6 +1848,25 @@ impl Host {
         }
         out
     }
+    /// Registers the cancellation of one `auth/login` or `auth/logout` request.
+    fn begin_auth(&mut self, key: &str) -> (u64, CancellationToken) {
+        self.auth_generation += 1;
+        let token = CancellationToken::new();
+        self.auth
+            .insert(key.to_owned(), (self.auth_generation, token.clone()));
+        (self.auth_generation, token)
+    }
+    /// The task ended: forget its cancellation (a request id reused since keeps the new
+    /// run's).
+    fn auth_finished(&mut self, key: &str, generation: u64) {
+        if self
+            .auth
+            .get(key)
+            .is_some_and(|(current, _)| *current == generation)
+        {
+            self.auth.remove(key);
+        }
+    }
 }
 fn supported_lifecycle(params: &Value) -> Result<(), RpcError> {
     for key in ["additionalDirectories", "mcpServers"] {
@@ -2203,6 +2232,7 @@ mod tests {
             pending: BTreeMap::new(),
             tasks: JoinSet::new(),
             auth: BTreeMap::new(),
+            auth_generation: 0,
         };
         tokio::spawn(host.run());
         call(&tx, json!(1), "initialize", json!({"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{"_meta":{TUI:{"version":1}}}}))
@@ -2782,5 +2812,113 @@ mod tests {
             assert!(prompt.await.is_err());
             assert!(!login.is_cancelled(), "{reply}: not a cancellation");
         }
+    }
+
+    /// A host that has negotiated form elicitation over the production registry, with
+    /// nothing running: the test plays the actor loop.
+    async fn authenticating_host(root: &Root) -> (Host, mpsc::UnboundedReceiver<Value>) {
+        let application = Application::new(crate::Options {
+            data_dir: root.0.join("data"),
+            config_dir: root.0.join("config"),
+            credentials: None,
+            model: None,
+            fixture_provider: false,
+            fixture_delay_ms: 20,
+        })
+        .await
+        .unwrap();
+        let (sender, output) = mpsc::unbounded_channel();
+        let (tx, rx) = mpsc::unbounded_channel();
+        let mut host = Host {
+            application: Arc::new(application),
+            contracts: Contracts::new(),
+            tx,
+            rx,
+            output: Output {
+                sender,
+                queued: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                closed: CancellationToken::new(),
+            },
+            reverse: Reverse::default(),
+            initialized: false,
+            pi: false,
+            elicitation: false,
+            owners: BTreeMap::new(),
+            pending: BTreeMap::new(),
+            tasks: JoinSet::new(),
+            auth: BTreeMap::new(),
+            auth_generation: 0,
+        };
+        let (reply, wait) = oneshot::channel();
+        host.call(Call {
+            id: json!(1),
+            method: "initialize".into(),
+            params: json!({"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{"elicitation":{"form":{}}}}),
+            reply,
+        })
+        .await;
+        assert!(
+            !wait.await.unwrap().unwrap()["authMethods"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        (host, output)
+    }
+
+    #[tokio::test]
+    async fn a_finished_auth_request_leaves_no_cancellation_behind() {
+        let root = Root::new();
+        let (mut host, mut output) = authenticating_host(&root).await;
+        for (id, method, params) in [
+            (2, "auth/logout", json!({})),
+            (3, "auth/login", json!({"methodId":"deepseek:apiKey"})),
+        ] {
+            let (reply, wait) = oneshot::channel();
+            host.call(Call {
+                id: json!(id),
+                method: method.into(),
+                params,
+                reply,
+            })
+            .await;
+            assert!(host.auth.contains_key(&id.to_string()));
+            if method == "auth/login" {
+                let form = loop {
+                    let frame = output.recv().await.unwrap();
+                    if frame["method"] == "elicitation/create" {
+                        break frame;
+                    }
+                };
+                answer(&host.reverse, &form["id"], json!({"action":"decline"}));
+            }
+            // The task settles the connection before it replies.
+            let Some(Event::Auth(key, generation)) = host.rx.recv().await else {
+                panic!("the finished task must report to the actor");
+            };
+            assert_eq!(key, id.to_string());
+            host.auth_finished(&key, generation);
+            assert!(host.auth.is_empty(), "request {id} left its token");
+            let reply = wait.await.unwrap();
+            if method == "auth/login" {
+                assert_eq!(reply.unwrap_err().code, -32800);
+            } else {
+                assert_eq!(reply.unwrap(), json!({}));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn a_reused_request_id_keeps_its_current_cancellation() {
+        let root = Root::new();
+        let (mut host, _output) = authenticating_host(&root).await;
+        let (earlier, _) = host.begin_auth("5");
+        let (current, token) = host.begin_auth("5");
+        // The earlier run ends after its id was reused: the current run stays cancellable.
+        host.auth_finished("5", earlier);
+        assert!(host.auth.contains_key("5"));
+        assert!(!token.is_cancelled());
+        host.auth_finished("5", current);
+        assert!(host.auth.is_empty());
     }
 }
