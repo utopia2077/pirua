@@ -469,6 +469,8 @@ their input semantics; request or dialog cancellation produces a cancelled resul
 The message is self-contained for every event kind: a device code shows its user code
 and verification URI, an info event its message and links, so a client that ignores
 `_meta` can finish the flow.
+A form answered with `decline` or `cancel`, or with a `-32800` error, cancels the login
+the same way: `auth/login` fails with `-32800`, like a cancelled request.
 A form still unanswered when its prompt is abandoned (the browser callback finished
 first, or the login was cancelled) is withdrawn from the client with a `$/cancel_request`
 notification naming the form's request ID.

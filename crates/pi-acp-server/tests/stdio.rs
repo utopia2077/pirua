@@ -210,6 +210,38 @@ fn cancelling_production_authentication_returns_protocol_cancellation() {
     c.shutdown();
 }
 #[test]
+fn declining_or_cancelling_an_authentication_form_returns_protocol_cancellation() {
+    for action in ["decline", "cancel"] {
+        let mut c = Client::start_mode(false);
+        c.authenticate_connection(false);
+        let login = c.begin("auth/login", json!({"methodId":"deepseek:apiKey"}));
+        let form = c.form();
+        c.send(json!({"jsonrpc":"2.0","id":form["id"],"result":{"action":action}}));
+        let response = c.result(login);
+        assert_eq!(response["error"]["code"], -32800, "{action}: {response}");
+        c.shutdown();
+    }
+}
+#[test]
+fn declining_the_oauth_manual_code_form_returns_protocol_cancellation() {
+    let mut c = Client::start_mode(false);
+    c.authenticate_connection(false);
+    let login = c.begin("auth/login", json!({"methodId":"anthropic:oauth"}));
+    let method = c.form();
+    assert_eq!(
+        method["params"]["requestedSchema"]["properties"]["value"]["enum"],
+        json!(["browser", "copy_code"])
+    );
+    // The headless flow needs no listener and no network until the code is pasted.
+    c.send(json!({"jsonrpc":"2.0","id":method["id"],"result":{"action":"accept","content":{"value":"copy_code"}}}));
+    let manual = c.form();
+    assert_ne!(manual["id"], method["id"]);
+    c.send(json!({"jsonrpc":"2.0","id":manual["id"],"result":{"action":"decline"}}));
+    let response = c.result(login);
+    assert_eq!(response["error"]["code"], -32800, "{response}");
+    c.shutdown();
+}
+#[test]
 fn cancelling_a_login_withdraws_its_open_form_at_the_client() {
     let mut c = Client::start_mode(false);
     c.authenticate_connection(false);

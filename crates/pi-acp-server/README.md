@@ -34,6 +34,7 @@ pump continues handling responses and cancellation. `auth/logout` removes stored
 credentials for all selected providers. It cannot remove environment values from
 the process that launched the server. Credentials never appear in snapshots or
 successful authentication responses.
+A form the client declines or cancels fails the login with `-32800`.
 A form left unanswered when its prompt is abandoned is withdrawn with a `$/cancel_request`
 notification.
 

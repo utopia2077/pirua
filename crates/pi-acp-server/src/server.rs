@@ -897,6 +897,7 @@ impl Host {
                     reverse: self.reverse.clone(),
                     request: serde_json::from_str(key).unwrap(),
                     next: std::sync::atomic::AtomicU64::new(0),
+                    login: token.clone(),
                 };
                 let reply = reply.take().unwrap();
                 self.tasks.spawn(async move {
@@ -1894,6 +1895,8 @@ struct Interaction {
     reverse: Reverse,
     request: Value,
     next: std::sync::atomic::AtomicU64,
+    /// The token of the `auth/login` this interaction serves.
+    login: CancellationToken,
 }
 /// An `elicitation/create` the client has not answered. Dropping it, because the prompt was
 /// dropped or cancelled, withdraws the reply waiter and tells the client to dismiss the form.
@@ -2010,6 +2013,16 @@ impl AuthInteraction for Interaction {
             };
             let result = tokio::select! {r=rx=>r.map_err(|_|AuthInteractionError::new()),_=c.cancelled()=>Err(AuthInteractionError::new())};
             let result = result?;
+            if matches!(
+                result["result"]["action"].as_str(),
+                Some("decline" | "cancel")
+            ) || result["error"]["code"] == -32800
+            {
+                // The user walked away from the login. Cancelling its own token is how the
+                // operation learns that: error types do not classify cancellation.
+                self.login.cancel();
+                return Err(AuthInteractionError::new());
+            }
             if result["result"]["action"] != "accept" {
                 return Err(AuthInteractionError::new());
             }
@@ -2579,9 +2592,15 @@ mod tests {
         assert_eq!(error.to_string(), "synthetic read failure");
     }
 
-    fn interaction() -> (Interaction, mpsc::UnboundedReceiver<Value>, Reverse) {
+    fn interaction() -> (
+        Interaction,
+        mpsc::UnboundedReceiver<Value>,
+        Reverse,
+        CancellationToken,
+    ) {
         let (sender, received) = mpsc::unbounded_channel();
         let reverse = Reverse::default();
+        let login = CancellationToken::new();
         let interaction = Interaction {
             output: Output {
                 sender,
@@ -2591,8 +2610,9 @@ mod tests {
             reverse: reverse.clone(),
             request: json!(7),
             next: std::sync::atomic::AtomicU64::new(0),
+            login: login.clone(),
         };
-        (interaction, received, reverse)
+        (interaction, received, reverse, login)
     }
     fn secret() -> AuthPrompt {
         AuthPrompt::Secret {
@@ -2609,7 +2629,7 @@ mod tests {
 
     #[test]
     fn auth_notifications_preserve_each_non_secret_event_without_waiting() {
-        let (interaction, mut received, reverse) = interaction();
+        let (interaction, mut received, reverse, _) = interaction();
         for (event, shown) in [
             (
                 json!({"type":"auth_url","url":"https://example.invalid/authorize","instructions":"Open the link"}),
@@ -2656,7 +2676,7 @@ mod tests {
     #[tokio::test]
     async fn a_dropped_auth_prompt_withdraws_its_form_from_the_client() {
         use futures_util::FutureExt;
-        let (interaction, mut received, reverse) = interaction();
+        let (interaction, mut received, reverse, _) = interaction();
         let token = CancellationToken::new();
         let mut prompt = interaction.prompt(secret(), &token);
         assert!((&mut prompt).now_or_never().is_none());
@@ -2685,7 +2705,7 @@ mod tests {
     #[tokio::test]
     async fn a_cancelled_auth_prompt_withdraws_its_form_from_the_client() {
         use futures_util::FutureExt;
-        let (interaction, mut received, reverse) = interaction();
+        let (interaction, mut received, reverse, _) = interaction();
         let token = CancellationToken::new();
         let mut prompt = interaction.prompt(secret(), &token);
         assert!((&mut prompt).now_or_never().is_none());
@@ -2703,7 +2723,7 @@ mod tests {
     #[tokio::test]
     async fn an_answered_auth_prompt_sends_no_cancellation() {
         use futures_util::FutureExt;
-        let (interaction, mut received, reverse) = interaction();
+        let (interaction, mut received, reverse, login) = interaction();
         let token = CancellationToken::new();
         let mut prompt = interaction.prompt(secret(), &token);
         assert!((&mut prompt).now_or_never().is_none());
@@ -2715,5 +2735,52 @@ mod tests {
         );
         assert_eq!(prompt.await.unwrap(), "synthetic");
         assert!(received.try_recv().is_err(), "nothing is left to cancel");
+        assert!(!login.is_cancelled());
+    }
+
+    #[tokio::test]
+    async fn declining_or_cancelling_an_auth_form_cancels_the_login() {
+        use futures_util::FutureExt;
+        for reply in [
+            json!({"result":{"action":"decline"}}),
+            json!({"result":{"action":"cancel"}}),
+            json!({"error":{"code":-32800,"message":"Request cancelled"}}),
+        ] {
+            let (interaction, mut received, reverse, login) = interaction();
+            let token = CancellationToken::new();
+            let mut prompt = interaction.prompt(secret(), &token);
+            assert!((&mut prompt).now_or_never().is_none());
+            let form = received.try_recv().unwrap();
+            let (tx, _rx) = mpsc::unbounded_channel();
+            let mut frame = json!({"jsonrpc":"2.0","id":form["id"]});
+            frame
+                .as_object_mut()
+                .unwrap()
+                .extend(reply.as_object().unwrap().clone());
+            assert!(route(frame, &tx, &reverse).is_none());
+            assert!(prompt.await.is_err());
+            assert!(login.is_cancelled(), "{reply}: the login must be cancelled");
+            assert!(received.try_recv().is_err());
+        }
+        // Other failures stay failures.
+        for reply in [
+            json!({"result":{"action":"accept"}}),
+            json!({"error":{"code":-32601,"message":"Method not found"}}),
+        ] {
+            let (interaction, mut received, reverse, login) = interaction();
+            let token = CancellationToken::new();
+            let mut prompt = interaction.prompt(secret(), &token);
+            assert!((&mut prompt).now_or_never().is_none());
+            let form = received.try_recv().unwrap();
+            let (tx, _rx) = mpsc::unbounded_channel();
+            let mut frame = json!({"jsonrpc":"2.0","id":form["id"]});
+            frame
+                .as_object_mut()
+                .unwrap()
+                .extend(reply.as_object().unwrap().clone());
+            assert!(route(frame, &tx, &reverse).is_none());
+            assert!(prompt.await.is_err());
+            assert!(!login.is_cancelled(), "{reply}: not a cancellation");
+        }
     }
 }
