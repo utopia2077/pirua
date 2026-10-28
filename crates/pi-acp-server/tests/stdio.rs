@@ -153,6 +153,24 @@ impl Client {
     fn snapshot(&mut self, id: &str) -> Value {
         self.call("_pirua/session/snapshot", json!({"sessionId":id}))
     }
+    /// The next form that asks for input; informational notifications have no fields.
+    fn form(&mut self) -> Value {
+        loop {
+            let v = self.read();
+            if v["method"] == "elicitation/create"
+                && v["params"]["requestedSchema"]["required"].is_array()
+            {
+                return v;
+            }
+        }
+    }
+    fn authenticate_connection(&mut self, pi: bool) -> Value {
+        let mut capabilities = json!({"elicitation":{"form":{}}});
+        if pi {
+            capabilities["_meta"] = json!({"pirua.dev/tui":{"version":1}});
+        }
+        self.call("initialize", json!({"protocolVersion":2,"info":{"name":"auth-test","version":"1"},"capabilities":capabilities}))
+    }
     fn shutdown(&mut self) {
         self.input.take();
         for _ in 0..200 {
@@ -189,6 +207,27 @@ fn cancelling_production_authentication_returns_protocol_cancellation() {
     c.send(json!({"jsonrpc":"2.0","method":"$/cancel_request","params":{"requestId":login}}));
     let response = c.result(login);
     assert_eq!(response["error"]["code"], -32800, "{response}");
+    c.shutdown();
+}
+#[test]
+fn cancelling_a_login_withdraws_its_open_form_at_the_client() {
+    let mut c = Client::start_mode(false);
+    c.authenticate_connection(false);
+    let login = c.begin("auth/login", json!({"methodId":"deepseek:apiKey"}));
+    let form = c.form();
+    c.send(json!({"jsonrpc":"2.0","method":"$/cancel_request","params":{"requestId":login}}));
+    let response = c.result(login);
+    assert_eq!(response["error"]["code"], -32800, "{response}");
+    let withdrawn = c
+        .events
+        .iter()
+        .find(|v| v["method"] == "$/cancel_request")
+        .unwrap_or_else(|| panic!("the open form was never withdrawn: {:?}", c.events));
+    assert_eq!(withdrawn["params"]["requestId"], form["id"]);
+    assert!(withdrawn.get("id").is_none(), "a notification has no id");
+    c.contracts
+        .validate("CancelRequestNotification", &withdrawn["params"])
+        .unwrap();
     c.shutdown();
 }
 #[test]

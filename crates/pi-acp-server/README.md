@@ -34,6 +34,8 @@ pump continues handling responses and cancellation. `auth/logout` removes stored
 credentials for all selected providers. It cannot remove environment values from
 the process that launched the server. Credentials never appear in snapshots or
 successful authentication responses.
+A form left unanswered when its prompt is abandoned is withdrawn with a `$/cancel_request`
+notification.
 
 The wire contract is the repository's pinned baseline ACP v2 schema, implemented
 with `agent-client-protocol-schema` 1.12.0 and its explicit

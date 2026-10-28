@@ -1895,6 +1895,31 @@ struct Interaction {
     request: Value,
     next: std::sync::atomic::AtomicU64,
 }
+/// An `elicitation/create` the client has not answered. Dropping it, because the prompt was
+/// dropped or cancelled, withdraws the reply waiter and tells the client to dismiss the form.
+struct Outstanding<'a> {
+    interaction: &'a Interaction,
+    id: Value,
+    key: String,
+}
+impl Drop for Outstanding<'_> {
+    fn drop(&mut self) {
+        let Interaction {
+            reverse, output, ..
+        } = self.interaction;
+        // An answered or connection-cleared entry is already gone: nothing to withdraw.
+        let pending = reverse
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&self.key)
+            .is_some();
+        if pending {
+            let _ = output.send(
+                json!({"jsonrpc":"2.0","method":"$/cancel_request","params":{"requestId":self.id}}),
+            );
+        }
+    }
+}
 fn auth_error(error: pi_ai::AuthResolutionError) -> RpcError {
     match error {
         pi_ai::AuthResolutionError::Cancelled => RpcError::cancelled(),
@@ -1967,13 +1992,23 @@ impl AuthInteraction for Interaction {
             let params = json!({"mode":"form","message":value["message"],"requestId":self.request,"requestedSchema":{"type":"object","properties":{"value":property},"required":["value"]},"_meta":{"pirua.dev/auth":{"secret":value["type"]=="secret"}}});
             let (tx, rx) = oneshot::channel();
             self.reverse.lock().unwrap().insert(key.clone(), tx);
-            self.output
+            if self
+                .output
                 .send(
                     json!({"jsonrpc":"2.0","id":id,"method":"elicitation/create","params":params}),
                 )
-                .map_err(|_| AuthInteractionError::new())?;
+                .is_err()
+            {
+                self.reverse.lock().unwrap().remove(&key);
+                return Err(AuthInteractionError::new());
+            }
+            // The form is now on the client's screen.
+            let _outstanding = Outstanding {
+                interaction: self,
+                id,
+                key,
+            };
             let result = tokio::select! {r=rx=>r.map_err(|_|AuthInteractionError::new()),_=c.cancelled()=>Err(AuthInteractionError::new())};
-            self.reverse.lock().unwrap().remove(&key);
             let result = result?;
             if result["result"]["action"] != "accept" {
                 return Err(AuthInteractionError::new());
@@ -2544,9 +2579,8 @@ mod tests {
         assert_eq!(error.to_string(), "synthetic read failure");
     }
 
-    #[test]
-    fn auth_notifications_preserve_each_non_secret_event_without_waiting() {
-        let (sender, mut received) = mpsc::unbounded_channel();
+    fn interaction() -> (Interaction, mpsc::UnboundedReceiver<Value>, Reverse) {
+        let (sender, received) = mpsc::unbounded_channel();
         let reverse = Reverse::default();
         let interaction = Interaction {
             output: Output {
@@ -2558,6 +2592,24 @@ mod tests {
             request: json!(7),
             next: std::sync::atomic::AtomicU64::new(0),
         };
+        (interaction, received, reverse)
+    }
+    fn secret() -> AuthPrompt {
+        AuthPrompt::Secret {
+            message: "Enter the synthetic key".into(),
+            placeholder: None,
+        }
+    }
+    /// What the receive pump does with a client's answer to a reverse request.
+    fn answer(reverse: &Reverse, id: &Value, result: Value) {
+        let (tx, _rx) = mpsc::unbounded_channel();
+        let frame = json!({"jsonrpc":"2.0","id":id,"result":result});
+        assert!(route(frame, &tx, reverse).is_none());
+    }
+
+    #[test]
+    fn auth_notifications_preserve_each_non_secret_event_without_waiting() {
+        let (interaction, mut received, reverse) = interaction();
         for (event, shown) in [
             (
                 json!({"type":"auth_url","url":"https://example.invalid/authorize","instructions":"Open the link"}),
@@ -2599,5 +2651,69 @@ mod tests {
             assert_eq!(frame["params"]["_meta"]["pirua.dev/auth"]["event"], event);
             assert!(reverse.lock().unwrap().is_empty());
         }
+    }
+
+    #[tokio::test]
+    async fn a_dropped_auth_prompt_withdraws_its_form_from_the_client() {
+        use futures_util::FutureExt;
+        let (interaction, mut received, reverse) = interaction();
+        let token = CancellationToken::new();
+        let mut prompt = interaction.prompt(secret(), &token);
+        assert!((&mut prompt).now_or_never().is_none());
+        let form = received.try_recv().expect("the form is sent");
+        assert_eq!(form["method"], "elicitation/create");
+        assert_eq!(reverse.lock().unwrap().len(), 1);
+        // The browser callback won: the manual-code prompt future is dropped unanswered.
+        drop(prompt);
+        assert!(
+            reverse.lock().unwrap().is_empty(),
+            "the waiter must not leak"
+        );
+        let cancel = received
+            .try_recv()
+            .expect("the client is told to dismiss it");
+        assert_eq!(
+            cancel,
+            json!({"jsonrpc":"2.0","method":"$/cancel_request","params":{"requestId":form["id"]}})
+        );
+        Contracts::new()
+            .validate("CancelRequestNotification", &cancel["params"])
+            .unwrap();
+        assert!(received.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn a_cancelled_auth_prompt_withdraws_its_form_from_the_client() {
+        use futures_util::FutureExt;
+        let (interaction, mut received, reverse) = interaction();
+        let token = CancellationToken::new();
+        let mut prompt = interaction.prompt(secret(), &token);
+        assert!((&mut prompt).now_or_never().is_none());
+        let form = received.try_recv().unwrap();
+        token.cancel();
+        assert!(prompt.await.is_err());
+        assert!(reverse.lock().unwrap().is_empty());
+        let cancel = received
+            .try_recv()
+            .expect("the client is told to dismiss it");
+        assert_eq!(cancel["method"], "$/cancel_request");
+        assert_eq!(cancel["params"]["requestId"], form["id"]);
+    }
+
+    #[tokio::test]
+    async fn an_answered_auth_prompt_sends_no_cancellation() {
+        use futures_util::FutureExt;
+        let (interaction, mut received, reverse) = interaction();
+        let token = CancellationToken::new();
+        let mut prompt = interaction.prompt(secret(), &token);
+        assert!((&mut prompt).now_or_never().is_none());
+        let form = received.try_recv().unwrap();
+        answer(
+            &reverse,
+            &form["id"],
+            json!({"action":"accept","content":{"value":"synthetic"}}),
+        );
+        assert_eq!(prompt.await.unwrap(), "synthetic");
+        assert!(received.try_recv().is_err(), "nothing is left to cancel");
     }
 }

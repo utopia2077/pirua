@@ -469,6 +469,9 @@ their input semantics; request or dialog cancellation produces a cancelled resul
 The message is self-contained for every event kind: a device code shows its user code
 and verification URI, an info event its message and links, so a client that ignores
 `_meta` can finish the flow.
+A form still unanswered when its prompt is abandoned (the browser callback finished
+first, or the login was cancelled) is withdrawn from the client with a `$/cancel_request`
+notification naming the form's request ID.
 Retain client-local component factories through a presentation registry, without
 loading the unrestricted upstream backend extension runner.
 
