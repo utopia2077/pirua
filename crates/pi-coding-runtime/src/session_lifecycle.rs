@@ -112,14 +112,14 @@ impl CodingSession {
         }
         if self.is_streaming() {
             return match options.delivery {
-                Some(Delivery::Steer) => {
-                    self.queue_message_input(text, images, true, admission, input.source)
-                        .await
-                }
-                Some(Delivery::FollowUp) => {
-                    self.queue_message_input(text, images, false, admission, input.source)
-                        .await
-                }
+                Some(Delivery::Steer) => self
+                    .queue_message_input(text, images, true, admission, input.source)
+                    .await
+                    .map(|_| ()),
+                Some(Delivery::FollowUp) => self
+                    .queue_message_input(text, images, false, admission, input.source)
+                    .await
+                    .map(|_| ()),
                 _ => Err(SessionError::Invalid(
                     "Agent is streaming; choose steer or follow-up delivery".into(),
                 )),
@@ -394,7 +394,10 @@ impl CodingSession {
     ) -> Result<(), SessionError> {
         self.queue_message_input(text, images, steer, None, InputSource::Interactive)
             .await
+            .map(|_| ())
     }
+    /// Whether the input entered the FIFO. A tracked input withdrawn since its reservation
+    /// (cancellation clears every pending receipt) is left out, and its receipt says so.
     async fn queue_message_input(
         &self,
         text: String,
@@ -402,17 +405,17 @@ impl CodingSession {
         steer: bool,
         admission: Option<InputAdmission>,
         source: InputSource,
-    ) -> Result<(), SessionError> {
+    ) -> Result<bool, SessionError> {
         let message = messages::user_message(text.clone(), images.clone());
         let display_id = admission.as_ref().map(|a| a.id);
         {
             let mut inputs = lock(&self.inner.inputs);
             if let Some(admission) = &admission {
                 let Some(input) = inputs.pending.get_mut(&admission.id) else {
-                    return Ok(());
+                    return Ok(false);
                 };
                 if admission.cancellation.is_cancelled() {
-                    return Ok(());
+                    return Ok(false);
                 }
                 input.queued = Some(crate::QueuedInput {
                     id: admission.id,
@@ -449,7 +452,8 @@ impl CodingSession {
                 self.agent().follow_up_input(message);
             }
         }
-        self.emit_queue().await
+        self.emit_queue().await?;
+        Ok(true)
     }
     pub async fn queue_tracked(
         &self,
@@ -490,14 +494,19 @@ impl CodingSession {
                 InputResult::Transform { text, images } => (text, images.unwrap_or(input.images)),
             };
             self.ensure_live()?;
-            self.queue_message_input(
-                self.expand_input(&text),
-                images,
-                delivery == Delivery::Steer,
-                Some(admission),
-                input.source,
-            )
-            .await?;
+            let queued = self
+                .queue_message_input(
+                    self.expand_input(&text),
+                    images,
+                    delivery == Delivery::Steer,
+                    Some(admission),
+                    input.source,
+                )
+                .await?;
+            // Withdrawn while the input hook ran: the receipt already holds the outcome.
+            if !queued {
+                return Err(SessionError::Cancelled);
+            }
             Ok::<_, SessionError>(true)
         }
         .await;

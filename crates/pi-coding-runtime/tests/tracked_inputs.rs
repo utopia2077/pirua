@@ -1014,6 +1014,49 @@ fn cancelling_a_preparing_request_does_not_abort_another_active_driver() {
     });
 }
 
+#[test]
+fn a_queue_admission_withdrawn_during_its_input_hook_reports_cancellation() {
+    runtime().block_on(async {
+        for delivery in [Delivery::Steer, Delivery::FollowUp] {
+            let store = Arc::new(MemoryStore::new());
+            let (hook_entered, hook_release) = (Arc::new(Notify::new()), Arc::new(Notify::new()));
+            let (stream, requests) = scripted(vec![]);
+            let session = session_with(
+                stream,
+                Arc::new(BlockPendingInput {
+                    entered: hook_entered.clone(),
+                    release: hook_release.clone(),
+                }),
+                store.clone(),
+            )
+            .await;
+            let queuing = tokio::spawn({
+                let session = session.clone();
+                async move { session.queue_tracked("waiting", vec![], delivery).await }
+            });
+            hook_entered.notified().await;
+            // A session switch withdraws every pending receipt, the one still preprocessing too.
+            assert!(session.new_session(store, "/tmp/elsewhere").await.unwrap());
+            hook_release.notify_one();
+            let admission = queuing.await.unwrap();
+            assert!(
+                matches!(admission, Err(SessionError::Cancelled)),
+                "an input that never entered the FIFO must not be reported as queued ({delivery:?}): {}",
+                match &admission {
+                    Ok(QueueAdmission::Queued(_)) => "queued".to_string(),
+                    Ok(QueueAdmission::Handled) => "handled".to_string(),
+                    Err(error) => error.to_string(),
+                }
+            );
+            assert!(session.queued_inputs().0.is_empty());
+            assert!(session.queued_inputs().1.is_empty());
+            assert!(!session.agent().has_queued_messages());
+            assert_eq!(session.pending_message_count(), 0);
+            assert!(requests.lock().unwrap().is_empty());
+        }
+    });
+}
+
 fn user_text(message: &AgentMessage) -> String {
     let value = serde_json::to_value(message).unwrap();
     value["content"][0]["text"]

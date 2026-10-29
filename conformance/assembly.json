@@ -5566,6 +5566,11 @@
         },
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::a_queue_admission_withdrawn_during_its_input_hook_reports_cancellation",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::explicit_continuation_drives_fresh_queues_without_implicit_start",
           "cargo_target": "session_runtime"
         },
@@ -6010,6 +6015,11 @@
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::cancelling_a_preparing_request_does_not_abort_another_active_driver",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::a_queue_admission_withdrawn_during_its_input_hook_reports_cancellation",
           "cargo_target": "session_runtime"
         },
         {
