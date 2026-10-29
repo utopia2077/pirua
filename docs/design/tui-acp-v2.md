@@ -292,6 +292,7 @@ appears on the wire.
 | `activity` | `{compacting, retrying, retryAttempt, bashRunning}` |
 | `stats`, `contextUsage` | Native session statistics and context usage, or null when unknown |
 | `settings`, `resources`, `tools` | Execution settings, resource descriptors/diagnostics and tool declarations sufficient for presentation |
+| `authMethods` | The advertised authentication methods with their `_meta["pirua.dev/auth"]` subscription flag and configured status, as of the last `initialize`, `auth/login` or `auth/logout`; empty without form elicitation |
 
 The host emits `_pirua/session/changed` only to negotiated clients, with
 `{sessionId, epoch, sequence, changes, historyChange?, inputResolution?}`. `changes`
@@ -460,6 +461,18 @@ present standard ACP elicitation/permission and provider instructions; provider 
 and credentials remain server-owned. Advertise interactive auth only with both login
 and logout implemented. Environment/existing credential setup is supported independently
 and must be documented; tests use deterministic auth interactions without paid requests.
+Each advertised authentication method carries
+`_meta["pirua.dev/auth"]: {subscription: boolean, status?: {type: "oauth" | "api_key", source: string}}`,
+the data of the original Pi login selector. `subscription` is whether the provider's
+OAuth flow is a subscription, the same for the provider's API-key and OAuth methods;
+`status` is present only while that provider has configured authentication and names
+the type in use and where it comes from. It is computed from local knowledge (the
+credential store and the process environment) and never refreshes a token over the
+network. The list is computed at `initialize` and again whenever an `auth/login` or
+`auth/logout` finishes, before that request is answered, and `PiSnapshot.authMethods`
+carries the same list so the client can refresh its selector after either. The list
+stays empty when form elicitation was not negotiated or the provider is the fixture.
+
 Native informational notifications use a zero-field form elicitation with readable
 instructions in `message`. Its optional `_meta["pirua.dev/auth"].event` preserves
 the original non-secret URL, device-code, info or progress event for the original

@@ -43,6 +43,8 @@ impl Client {
             .env_remove("OPENAI_API_KEY")
             .env_remove("GEMINI_API_KEY")
             .env_remove("ANTHROPIC_API_KEY")
+            .env_remove("ANTHROPIC_AUTH_TOKEN")
+            .env_remove("ANTHROPIC_OAUTH_TOKEN")
             .env_remove("DEEPSEEK_API_KEY")
             .arg("--data-dir")
             .arg(root.join("data"))
@@ -260,6 +262,75 @@ fn cancelling_a_login_withdraws_its_open_form_at_the_client() {
     c.contracts
         .validate("CancelRequestNotification", &withdrawn["params"])
         .unwrap();
+    c.shutdown();
+}
+#[test]
+fn authentication_methods_report_local_status_and_snapshots_refresh_after_login_and_logout() {
+    let mut c = Client::start_mode(false);
+    let initialization = c.authenticate_connection(true);
+    let advertised = initialization["authMethods"].as_array().unwrap().clone();
+    let meta = |methods: &[Value], id: &str| {
+        methods
+            .iter()
+            .find(|m| m["methodId"] == id)
+            .unwrap_or_else(|| panic!("{id} not advertised in {methods:?}"))["_meta"]["pirua.dev/auth"]
+            .clone()
+    };
+    for method in &advertised {
+        let meta = &method["_meta"]["pirua.dev/auth"];
+        assert!(meta["subscription"].is_boolean(), "{method}");
+        assert!(
+            meta.get("status").is_none(),
+            "no credentials are configured: {method}"
+        );
+    }
+    assert_eq!(meta(&advertised, "anthropic:oauth")["subscription"], true);
+    assert_eq!(meta(&advertised, "openai:oauth")["subscription"], true);
+    assert_eq!(meta(&advertised, "deepseek:apiKey")["subscription"], false);
+    let session = c.new_session();
+    assert_eq!(c.snapshot(&session)["authMethods"], json!(advertised));
+
+    let login = c.begin("auth/login", json!({"methodId":"deepseek:apiKey"}));
+    let form = c.form();
+    c.send(json!({"jsonrpc":"2.0","id":form["id"],"result":{"action":"accept","content":{"value":"synthetic-status-key"}}}));
+    assert_eq!(c.result(login)["result"], json!({}));
+    let configured = c.snapshot(&session)["authMethods"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(
+        meta(&configured, "deepseek:apiKey")["status"],
+        json!({"type":"api_key","source":"stored credential"})
+    );
+    assert_eq!(meta(&configured, "deepseek:apiKey")["subscription"], false);
+    assert!(meta(&configured, "google:apiKey").get("status").is_none());
+    assert!(
+        !c.events
+            .iter()
+            .any(|v| v.to_string().contains("synthetic-status-key"))
+    );
+
+    c.call("auth/logout", json!({}));
+    let cleared = c.snapshot(&session)["authMethods"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert!(meta(&cleared, "deepseek:apiKey").get("status").is_none());
+    c.shutdown();
+}
+#[test]
+fn authentication_methods_are_absent_without_elicitation_and_with_the_fixture_provider() {
+    let mut c = Client::start();
+    let initialization = c.call("initialize", json!({"protocolVersion":2,"info":{"name":"fixture","version":"1"},"capabilities":{"elicitation":{"form":{}},"_meta":{"pirua.dev/tui":{"version":1}}}}));
+    assert_eq!(initialization["authMethods"], json!([]));
+    let session = c.new_session();
+    assert_eq!(c.snapshot(&session)["authMethods"], json!([]));
+    c.shutdown();
+    let mut c = Client::start_mode(false);
+    let initialization = c.call("initialize", json!({"protocolVersion":2,"info":{"name":"plain","version":"1"},"capabilities":{"_meta":{"pirua.dev/tui":{"version":1}}}}));
+    assert_eq!(initialization["authMethods"], json!([]));
+    let session = c.new_session();
+    assert_eq!(c.snapshot(&session)["authMethods"], json!([]));
     c.shutdown();
 }
 #[test]

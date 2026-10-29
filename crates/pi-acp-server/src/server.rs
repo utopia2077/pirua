@@ -74,8 +74,9 @@ enum Event {
         Result<Vec<pi_coding_runtime::QueuedInput>, String>,
         Option<Reply>,
     ),
-    /// An `auth/login` or `auth/logout` task ended: its request id and generation.
-    Auth(String, u64),
+    /// An `auth/login` or `auth/logout` task ended: its request id and generation, and
+    /// the advertised methods as the credentials now stand.
+    Auth(String, u64, Vec<Value>),
     Shutdown(oneshot::Sender<()>),
 }
 enum OperationResult {
@@ -126,6 +127,8 @@ struct Host {
     /// generation tells a request id's earlier run from its current one.
     auth: BTreeMap<String, (u64, CancellationToken)>,
     auth_generation: u64,
+    /// Advertised authentication methods; empty unless elicitation was negotiated.
+    auth_methods: Vec<Value>,
 }
 
 pub async fn serve<R, W>(application: Application, input: R, output: W) -> Result<(), AppError>
@@ -183,6 +186,7 @@ where
         tasks: JoinSet::new(),
         auth: BTreeMap::new(),
         auth_generation: 0,
+        auth_methods: vec![],
     };
     let actor = tokio::spawn(host.run());
     let mut lines = BufReader::new(input).split(b'\n');
@@ -394,7 +398,9 @@ impl Host {
                         self.maybe_close(&id).await;
                     }
                 }
-                Event::Auth(key, generation) => self.auth_finished(&key, generation),
+                Event::Auth(key, generation, methods) => {
+                    self.auth_finished(&key, generation, methods)
+                }
                 Event::Shutdown(done) => {
                     for pending in self.pending.values() {
                         pending.cancel.cancel();
@@ -539,6 +545,7 @@ impl Host {
         settings["followUpMode"] = json!(session.agent().follow_up_mode());
         let mut projection = Projection::new(initial, &loaded, settings);
         projection.view = Projection::capture_view(&session, &self.application.models);
+        projection.auth_methods = Value::Array(self.auth_methods.clone());
         Ok(Owner {
             session,
             history,
@@ -728,7 +735,7 @@ impl Host {
             return;
         }
         if method == "initialize" {
-            let result = (|| {
+            let negotiated = (|| {
                 self.contracts.validate("InitializeRequest", &params)?;
                 let version = params["protocolVersion"].as_u64().unwrap_or(0);
                 if version < 2 {
@@ -742,11 +749,21 @@ impl Host {
                 self.initialized = true;
                 self.pi = params["capabilities"]["_meta"][TUI]["version"] == 1;
                 self.elicitation = params["capabilities"]["elicitation"]["form"].is_object();
-                let methods = self.auth_methods();
-                Ok(
-                    json!({"protocolVersion":2,"info":{"name":"pi-acp-server","version":env!("CARGO_PKG_VERSION")},"capabilities":{"session":{"prompt":{"image":{}}},"_meta":{TUI:{"version":1,"features":["snapshot","queue","tree","shell","scopedModels","resources"]}}},"authMethods":methods}),
-                )
+                Ok(())
             })();
+            let result = match negotiated {
+                Ok(()) => {
+                    if self.elicitation
+                        && let Some(registry) = &self.application.registry
+                    {
+                        self.auth_methods = auth_methods(registry).await;
+                    }
+                    Ok(
+                        json!({"protocolVersion":2,"info":{"name":"pi-acp-server","version":env!("CARGO_PKG_VERSION")},"capabilities":{"session":{"prompt":{"image":{}}},"_meta":{TUI:{"version":1,"features":["snapshot","queue","tree","shell","scopedModels","resources"]}}},"authMethods":self.auth_methods}),
+                    )
+                }
+                Err(error) => Err(error),
+            };
             let _ = reply.send(result);
             return;
         }
@@ -878,11 +895,7 @@ impl Host {
             "auth/login" => {
                 self.contracts.validate("LoginAuthRequest", params)?;
                 let method_id = string(params, "methodId")?;
-                if !self
-                    .auth_methods()
-                    .iter()
-                    .any(|m| m["methodId"] == method_id)
-                {
+                if !self.auth_methods.iter().any(|m| m["methodId"] == method_id) {
                     return Err(RpcError::params("Authentication method was not advertised"));
                 }
                 let (provider, kind) = method_id
@@ -914,14 +927,14 @@ impl Host {
                         .map(|_| json!({}))
                         .map_err(auth_error);
                     // Settled before the reply, so whatever the client asks next sees it.
-                    let _ = tx.send(Event::Auth(key, generation));
+                    let _ = tx.send(Event::Auth(key, generation, auth_methods(&registry).await));
                     let _ = reply.send(result);
                 });
                 Ok(None)
             }
             "auth/logout" => {
                 self.contracts.validate("LogoutAuthRequest", params)?;
-                if self.auth_methods().is_empty() {
+                if self.auth_methods.is_empty() {
                     return Err(RpcError::app(
                         "unsupported",
                         "Authentication was not advertised for this connection",
@@ -941,7 +954,7 @@ impl Host {
                             break;
                         }
                     }
-                    let _ = tx.send(Event::Auth(key, generation));
+                    let _ = tx.send(Event::Auth(key, generation, auth_methods(&registry).await));
                     let _ = reply.send(result);
                 });
                 Ok(None)
@@ -1830,24 +1843,6 @@ impl Host {
         }
         value
     }
-    fn auth_methods(&self) -> Vec<Value> {
-        if !self.elicitation {
-            return vec![];
-        }
-        let Some(registry) = &self.application.registry else {
-            return vec![];
-        };
-        let mut out = Vec::new();
-        for p in registry.get_providers() {
-            if let Some(api) = p.auth().api_key() {
-                out.push(json!({"type":"agent","methodId":format!("{}:apiKey",p.id()),"name":api.name()}));
-            }
-            if let Some(oauth) = p.auth().oauth() {
-                out.push(json!({"type":"agent","methodId":format!("{}:oauth",p.id()),"name":oauth.name()}));
-            }
-        }
-        out
-    }
     /// Registers the cancellation of one `auth/login` or `auth/logout` request.
     fn begin_auth(&mut self, key: &str) -> (u64, CancellationToken) {
         self.auth_generation += 1;
@@ -1857,8 +1852,8 @@ impl Host {
         (self.auth_generation, token)
     }
     /// The task ended: forget its cancellation (a request id reused since keeps the new
-    /// run's).
-    fn auth_finished(&mut self, key: &str, generation: u64) {
+    /// run's) and hand every open session the methods as the credentials now stand.
+    fn auth_finished(&mut self, key: &str, generation: u64, methods: Vec<Value>) {
         if self
             .auth
             .get(key)
@@ -1866,7 +1861,38 @@ impl Host {
         {
             self.auth.remove(key);
         }
+        for owner in self.owners.values_mut() {
+            owner.projection.auth_methods = Value::Array(methods.clone());
+        }
+        self.auth_methods = methods;
     }
+}
+/// The authentication methods this registry offers. A provider's `status` is present only
+/// while its credentials are configured, and `subscription` is the provider's OAuth flag,
+/// as in the original Pi login selector. Both come from local knowledge: `check_auth`
+/// reads the credential store and ambient environment and never refreshes over the network.
+async fn auth_methods(registry: &pi_ai::ModelsRegistry) -> Vec<Value> {
+    let never = CancellationToken::new();
+    let mut out = Vec::new();
+    for p in registry.get_providers() {
+        let (api, oauth) = (p.auth().api_key(), p.auth().oauth());
+        if api.is_none() && oauth.is_none() {
+            continue;
+        }
+        let mut meta = json!({"subscription":oauth.as_ref().is_some_and(|o|o.is_subscription())});
+        if let Ok(Some(check)) = registry.check_auth(p.id(), &never).await {
+            meta["status"] =
+                json!({"type":check.auth_type,"source":check.source.unwrap_or_default()});
+        }
+        let meta = json!({"pirua.dev/auth":meta});
+        if let Some(api) = api {
+            out.push(json!({"type":"agent","methodId":format!("{}:apiKey",p.id()),"name":api.name(),"_meta":meta}));
+        }
+        if let Some(oauth) = oauth {
+            out.push(json!({"type":"agent","methodId":format!("{}:oauth",p.id()),"name":oauth.name(),"_meta":meta}));
+        }
+    }
+    out
 }
 fn supported_lifecycle(params: &Value) -> Result<(), RpcError> {
     for key in ["additionalDirectories", "mcpServers"] {
@@ -2233,6 +2259,7 @@ mod tests {
             tasks: JoinSet::new(),
             auth: BTreeMap::new(),
             auth_generation: 0,
+            auth_methods: vec![],
         };
         tokio::spawn(host.run());
         call(&tx, json!(1), "initialize", json!({"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{"_meta":{TUI:{"version":1}}}}))
@@ -2848,6 +2875,7 @@ mod tests {
             tasks: JoinSet::new(),
             auth: BTreeMap::new(),
             auth_generation: 0,
+            auth_methods: vec![],
         };
         let (reply, wait) = oneshot::channel();
         host.call(Call {
@@ -2893,11 +2921,11 @@ mod tests {
                 answer(&host.reverse, &form["id"], json!({"action":"decline"}));
             }
             // The task settles the connection before it replies.
-            let Some(Event::Auth(key, generation)) = host.rx.recv().await else {
+            let Some(Event::Auth(key, generation, methods)) = host.rx.recv().await else {
                 panic!("the finished task must report to the actor");
             };
             assert_eq!(key, id.to_string());
-            host.auth_finished(&key, generation);
+            host.auth_finished(&key, generation, methods);
             assert!(host.auth.is_empty(), "request {id} left its token");
             let reply = wait.await.unwrap();
             if method == "auth/login" {
@@ -2909,16 +2937,47 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_stored_oauth_credential_is_reported_as_the_providers_status() {
+        let root = Root::new();
+        std::fs::create_dir_all(&root.0).unwrap();
+        let credentials = root.0.join("credentials.json");
+        std::fs::write(&credentials, json!({"anthropic":{"type":"oauth","refresh":"synthetic-refresh","access":"synthetic-access","expires":4102444800000u64}}).to_string()).unwrap();
+        let application = Application::new(crate::Options {
+            data_dir: root.0.join("data"),
+            config_dir: root.0.join("config"),
+            credentials: Some(credentials),
+            model: None,
+            fixture_provider: false,
+            fixture_delay_ms: 20,
+        })
+        .await
+        .unwrap();
+        let methods = auth_methods(application.registry.as_ref().unwrap()).await;
+        // Provider-level, like the original selector: both of its methods show the OAuth in use.
+        for id in ["anthropic:oauth", "anthropic:apiKey"] {
+            let meta =
+                &methods.iter().find(|m| m["methodId"] == id).unwrap()["_meta"]["pirua.dev/auth"];
+            assert_eq!(meta["subscription"], true, "{id}");
+            assert_eq!(
+                meta["status"],
+                json!({"type":"oauth","source":"OAuth"}),
+                "{id}"
+            );
+        }
+        assert!(!json!(methods).to_string().contains("synthetic-"));
+    }
+
+    #[tokio::test]
     async fn a_reused_request_id_keeps_its_current_cancellation() {
         let root = Root::new();
         let (mut host, _output) = authenticating_host(&root).await;
         let (earlier, _) = host.begin_auth("5");
         let (current, token) = host.begin_auth("5");
         // The earlier run ends after its id was reused: the current run stays cancellable.
-        host.auth_finished("5", earlier);
+        host.auth_finished("5", earlier, vec![]);
         assert!(host.auth.contains_key("5"));
         assert!(!token.is_cancelled());
-        host.auth_finished("5", current);
+        host.auth_finished("5", current, vec![]);
         assert!(host.auth.is_empty());
     }
 }

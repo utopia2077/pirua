@@ -37,6 +37,10 @@ successful authentication responses.
 A form the client declines or cancels fails the login with `-32800`.
 A form left unanswered when its prompt is abandoned is withdrawn with a `$/cancel_request`
 notification.
+Each method's `_meta["pirua.dev/auth"]` carries `subscription` and, while the provider has
+configured authentication, `status` (`type` and `source`, from local credential knowledge
+only). Pi snapshots repeat the list as `authMethods` so a client can refresh it after login
+or logout.
 
 The wire contract is the repository's pinned baseline ACP v2 schema, implemented
 with `agent-client-protocol-schema` 1.12.0 and its explicit

@@ -18,6 +18,8 @@ pub struct Projection {
     pub activity: Value,
     pub settings: Value,
     pub resources: Value,
+    /// The connection's advertised authentication methods as of the last login or logout.
+    pub auth_methods: Value,
     pub last_outcome: ActivityOutcome,
     pub last_error: Option<String>,
     pub view: Value,
@@ -48,6 +50,7 @@ impl Projection {
             activity: json!({"compacting":false,"retrying":false,"retryAttempt":0,"bashRunning":false}),
             settings,
             resources: resources(loaded),
+            auth_methods: json!([]),
             last_outcome: ActivityOutcome::Completed,
             last_error: None,
             view: json!({}),
@@ -185,7 +188,7 @@ impl Projection {
             &context,
             self.view["model"]["contextWindow"].as_u64().unwrap_or(0),
         );
-        for (key,value) in json!({"sessionId":self.history.header.id,"epoch":self.epoch,"sequence":self.sequence,"history":self.history,"messages":context.messages,"contextEntries":context.entries,"liveEntities":self.entity_order.iter().filter_map(|key|self.entities.get(key).cloned()).collect::<Vec<_>>(),"state":self.state,"activity":self.activity,"stats":stats,"contextUsage":context_usage,"settings":self.settings,"resources":self.resources}).as_object().unwrap(){snapshot[key]=value.clone();}
+        for (key,value) in json!({"sessionId":self.history.header.id,"epoch":self.epoch,"sequence":self.sequence,"history":self.history,"messages":context.messages,"contextEntries":context.entries,"liveEntities":self.entity_order.iter().filter_map(|key|self.entities.get(key).cloned()).collect::<Vec<_>>(),"state":self.state,"activity":self.activity,"stats":stats,"contextUsage":context_usage,"settings":self.settings,"resources":self.resources,"authMethods":self.auth_methods}).as_object().unwrap(){snapshot[key]=value.clone();}
         snapshot
     }
     pub fn event(&mut self, event: SessionEvent) -> Vec<Value> {
