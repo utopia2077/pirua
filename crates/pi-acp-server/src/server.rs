@@ -108,6 +108,8 @@ struct Owner {
     operation_request: Option<(String, CancellationToken)>,
     cancel_replies: Vec<Reply>,
     close_replies: Vec<Reply>,
+    /// `session/resume` requests received while closing; each runs again once the owner is gone.
+    resumes: Vec<Call>,
     admission: Arc<tokio::sync::Mutex<()>>,
 }
 struct Host {
@@ -563,6 +565,7 @@ impl Host {
             operation_request: None,
             cancel_replies: vec![],
             close_replies: vec![],
+            resumes: vec![],
             admission: Arc::new(tokio::sync::Mutex::new(())),
         })
     }
@@ -852,6 +855,19 @@ impl Host {
                 }
                 let id = string(params, "sessionId")?.to_owned();
                 let cwd = string(params, "cwd")?;
+                if let Some(owner) = self.owners.get_mut(&id)
+                    && owner.closing
+                {
+                    // About to be removed: answering with it would hand out a session that is
+                    // gone. Resume again once the close has finished, reopening from storage.
+                    owner.resumes.push(Call {
+                        id: serde_json::from_str(key).unwrap(),
+                        method: method.into(),
+                        params: params.clone(),
+                        reply: reply.take().unwrap(),
+                    });
+                    return Ok(None);
+                }
                 if !self.owners.contains_key(&id) {
                     let manager = SessionManager::open(self.application.store.clone(), &id)
                         .map_err(RpcError::failed)?;
@@ -1755,6 +1771,9 @@ impl Host {
             for reply in owner.close_replies {
                 let _ = reply.send(result.clone());
             }
+            for resume in owner.resumes {
+                let _ = self.tx.send(Event::Call(resume));
+            }
         }
     }
     /// Rebuild that keeps a stale owner registered on failure: the cause is recorded and
@@ -2584,6 +2603,55 @@ mod tests {
         .unwrap()
         .expect_err("the closed owner is gone");
         assert_eq!(error.code, -32602, "{error:?}");
+        shutdown(&tx).await;
+    }
+
+    /// The activation epoch of the session's current owner: new for every owner.
+    async fn epoch(tx: &mpsc::UnboundedSender<Event>, id: u64, s: &str) -> RpcResult {
+        let snapshot = call(
+            tx,
+            json!(id),
+            "_pirua/session/snapshot",
+            json!({"sessionId":s}),
+        );
+        snapshot
+            .await
+            .unwrap()
+            .map(|snapshot| snapshot["epoch"].clone())
+    }
+
+    #[tokio::test]
+    async fn resuming_a_closing_session_waits_for_the_close_and_reopens_it() {
+        let root = Root::new();
+        let (tx, _output, s) = open(&root).await;
+        let before = epoch(&tx, 50, &s).await.expect("the session is open");
+        // Queued together: the close finds the prompt running and cannot finish at once,
+        // so the resume arrives while the owner is closing.
+        let running = prompt(&tx, 51, &s, "fixture:block");
+        let close = call(&tx, json!(52), "session/close", json!({"sessionId":s}));
+        let resume = call(
+            &tx,
+            json!(53),
+            "session/resume",
+            json!({"sessionId":s,"cwd":root.0.to_string_lossy()}),
+        );
+        tokio::time::timeout(Duration::from_secs(5), resume)
+            .await
+            .expect("the resume is answered once the close has finished")
+            .unwrap()
+            .expect("the resume reopens the session");
+        close.await.unwrap().expect("the close is answered");
+        let _ = running.await;
+        // The resume did not hand out the closing owner: a new one serves the session.
+        let after = epoch(&tx, 54, &s)
+            .await
+            .expect("the resumed session stays open");
+        assert_ne!(after, before, "the closing owner was handed out");
+        let receipt = prompt(&tx, 55, &s, "again")
+            .await
+            .unwrap()
+            .expect("the reopened session admits a prompt");
+        assert!(receipt["messageId"].is_string(), "{receipt}");
         shutdown(&tx).await;
     }
 

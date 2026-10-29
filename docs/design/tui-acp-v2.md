@@ -183,7 +183,10 @@ mirror clears the relevant projection explicitly before applying a complete repl
 Closing active work sends final updates and idle/cancelled state before the successful
 close response. A prompt prevented from insertion receives `-32800`; an already
 inserted prompt still receives its message ID. Closing releases the active session,
-not its retained SQLite history. List/resume work after reopening the server.
+not its retained SQLite history. List/resume work after reopening the server. A
+`session/resume` received while that session is still closing waits for the close to
+finish and then reopens the session from its retained history; it never answers with
+the closing session.
 
 ## Pi extension principles
 
