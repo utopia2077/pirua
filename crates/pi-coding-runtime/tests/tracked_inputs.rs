@@ -804,6 +804,107 @@ fn rejected_queue_notification_preserves_a_committed_inputs_exact_ticket() {
     });
 }
 
+/// Holds the first non-empty queue acknowledgement open, then fails it on release.
+fn failing_queue_ack() -> (SessionEventSink, Arc<Notify>, Arc<Notify>) {
+    let (entered, reject) = (Arc::new(Notify::new()), Arc::new(Notify::new()));
+    let subscriber: SessionEventSink = Arc::new({
+        let (entered, reject) = (entered.clone(), reject.clone());
+        move |event| {
+            let (entered, reject) = (entered.clone(), reject.clone());
+            Box::pin(async move {
+                if matches!(event, SessionEvent::QueueUpdate { steering, follow_up }
+                    if !steering.is_empty() || !follow_up.is_empty())
+                {
+                    entered.notify_one();
+                    reject.notified().await;
+                    return Err(AgentError::Callback(
+                        "queue acknowledgement rejected".into(),
+                    ));
+                }
+                Ok(())
+            })
+        }
+    });
+    (subscriber, entered, reject)
+}
+
+#[test]
+fn rejected_queue_notification_reports_cancellation_of_an_input_withdrawn_meanwhile() {
+    runtime().block_on(async {
+        for delivery in [Delivery::Steer, Delivery::FollowUp] {
+            for dispose in [false, true] {
+                let (stream, _) = scripted(vec![]);
+                let session = session_with(stream, Arc::new(NoopSessionHooks), Arc::new(MemoryStore::new())).await;
+                let (ack, ack_entered, reject_ack) = failing_queue_ack();
+                session.subscribe(ack);
+                let queuing = tokio::spawn({
+                    let session = session.clone();
+                    async move { session.queue_tracked("withdrawn", vec![], delivery).await }
+                });
+                ack_entered.notified().await;
+                // The input is live in the FIFO while its notification awaits acknowledgement.
+                let (steering, follow_up) = session.queued_inputs();
+                assert_eq!(steering.len() + follow_up.len(), 1);
+                if dispose {
+                    session.dispose().await.unwrap();
+                } else {
+                    assert_eq!(session.clear_queue_tracked().await.unwrap().len(), 1);
+                }
+                reject_ack.notify_one();
+                let admission = queuing.await.unwrap();
+                assert!(
+                    matches!(admission, Err(SessionError::Cancelled)),
+                    "a cancelled input must not be reported as queued ({delivery:?}, dispose={dispose}): {}",
+                    match &admission {
+                        Ok(QueueAdmission::Queued(_)) => "queued".to_string(),
+                        Ok(QueueAdmission::Handled) => "handled".to_string(),
+                        Err(error) => error.to_string(),
+                    }
+                );
+                assert!(session.queued_inputs().0.is_empty());
+                assert!(session.queued_inputs().1.is_empty());
+                assert!(!session.agent().has_queued_messages());
+                if !dispose {
+                    // Disposal leaves the closed session's display mirror untouched.
+                    assert_eq!(session.pending_message_count(), 0);
+                }
+            }
+        }
+    });
+}
+
+#[test]
+fn rejected_queue_notification_reports_the_rejection_of_an_input_the_driver_refused() {
+    runtime().block_on(async {
+        let (stream, entered, release, _) = blocked_first();
+        let session = session_with(stream, Arc::new(RejectQueuedTransform), Arc::new(MemoryStore::new())).await;
+        let (ack, ack_entered, reject_ack) = failing_queue_ack();
+        session.subscribe(ack);
+        let (first, driver) = session.tracked_prompt("start", PromptOptions::default());
+        let running = tokio::spawn(driver);
+        entered.notified().await;
+        let queuing = tokio::spawn({
+            let session = session.clone();
+            async move { session.queue_tracked("bad queued", vec![], Delivery::Steer).await }
+        });
+        ack_entered.notified().await;
+        // The live driver drains the queued input and its start transform refuses it
+        // while the queue notification still awaits acknowledgement.
+        release.notify_one();
+        running.await.unwrap().unwrap();
+        inserted(first.resolution.await.unwrap());
+        reject_ack.notify_one();
+        let admission = queuing.await.unwrap();
+        assert!(
+            matches!(&admission, Err(SessionError::Invalid(message)) if message == "queued start rejected"),
+            "a rejected input must report its rejection, not a queued receipt"
+        );
+        assert!(session.queued_inputs().0.is_empty());
+        assert!(!session.agent().has_queued_messages());
+        assert_eq!(session.pending_message_count(), 0);
+    });
+}
+
 #[test]
 fn dropping_last_session_owner_resolves_queued_tickets_as_cancelled() {
     runtime().block_on(async {

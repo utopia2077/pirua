@@ -26,6 +26,8 @@ pub enum SessionError {
     Storage(pi_coding_session::Error),
     Invalid(String),
     Disposed,
+    /// The input was withdrawn before it could be inserted.
+    Cancelled,
 }
 impl std::fmt::Display for SessionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -34,6 +36,7 @@ impl std::fmt::Display for SessionError {
             Self::Storage(e) => e.fmt(f),
             Self::Invalid(m) => f.write_str(m),
             Self::Disposed => f.write_str("CodingSession is disposed"),
+            Self::Cancelled => f.write_str("Input cancelled before insertion"),
         }
     }
 }

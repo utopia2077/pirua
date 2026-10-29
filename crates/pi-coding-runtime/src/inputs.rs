@@ -39,6 +39,14 @@ impl InputCancellation {
     }
 }
 impl InputTicket {
+    /// Reads an already-delivered resolution without consuming the receipt.
+    fn delivered(&mut self) -> Option<InputResolution> {
+        let resolution = self.resolution.try_recv().ok()?;
+        let (sender, receiver) = oneshot::channel();
+        let _ = sender.send(resolution.clone());
+        self.resolution = receiver;
+        Some(resolution)
+    }
     pub fn cancellation_handle(&self) -> InputCancellation {
         InputCancellation {
             id: self.id,
@@ -169,6 +177,25 @@ impl CodingSession {
     /// Rejects only a pending admission; a terminal receipt is irrevocable.
     pub(crate) fn reject_input(&self, id: InputId, message: String) -> bool {
         self.finish_input(id, InputResolution::Rejected { message })
+    }
+    /// Settles a queue admission that failed after its input was reserved.
+    pub(crate) fn fail_queue_admission(
+        &self,
+        mut ticket: InputTicket,
+        error: SessionError,
+    ) -> Result<QueueAdmission, SessionError> {
+        if self.reject_input(ticket.id, error.to_string()) {
+            return Err(error);
+        }
+        // Resolution removes the input and delivers its outcome under the Inputs
+        // lock that reject_input just took, so a missing input already holds its
+        // terminal receipt. Cancelled and rejected inputs were never admitted;
+        // an inserted one belongs to the live driver and keeps its receipt.
+        match ticket.delivered() {
+            Some(InputResolution::Cancelled) => Err(SessionError::Cancelled),
+            Some(InputResolution::Rejected { message }) => Err(SessionError::Invalid(message)),
+            _ => Ok(QueueAdmission::Queued(ticket)),
+        }
     }
     fn finish_input(&self, id: InputId, outcome: InputResolution) -> bool {
         let mut inputs = lock(&self.inner.inputs);

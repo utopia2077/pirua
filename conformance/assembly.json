@@ -5541,6 +5541,16 @@
         },
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_reports_cancellation_of_an_input_withdrawn_meanwhile",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_reports_the_rejection_of_an_input_the_driver_refused",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::dropping_last_session_owner_resolves_queued_tickets_as_cancelled",
           "cargo_target": "session_runtime"
         },
@@ -5975,6 +5985,16 @@
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::rejected_queue_notification_preserves_a_committed_inputs_exact_ticket",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_reports_cancellation_of_an_input_withdrawn_meanwhile",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_reports_the_rejection_of_an_input_the_driver_refused",
           "cargo_target": "session_runtime"
         },
         {

@@ -1112,7 +1112,7 @@ impl Host {
                         let tx = self.tx.clone();
                         let request = key.to_owned();
                         let reply = reply.take().unwrap();
-                        self.tasks.spawn(async move{let admission=async{let _gate=gate.lock().await;session.queue_tracked(text,images,delivery).await.map_err(RpcError::failed)};let result=tokio::select!{biased;_=token.cancelled()=>Err(RpcError::cancelled()),result=admission=>result};let _=tx.send(Event::Queue(id,request,result,reply));});
+                        self.tasks.spawn(async move{let admission=async{let _gate=gate.lock().await;session.queue_tracked(text,images,delivery).await.map_err(queue_error)};let result=tokio::select!{biased;_=token.cancelled()=>Err(RpcError::cancelled()),result=admission=>result};let _=tx.send(Event::Queue(id,request,result,reply));});
                         Ok(None)
                     }
                     "_pirua/session/clear_queue" => {
@@ -1978,6 +1978,13 @@ impl Drop for Outstanding<'_> {
         }
     }
 }
+/// A queue admission withdrawn before insertion is a protocol cancellation.
+fn queue_error(error: SessionError) -> RpcError {
+    match error {
+        SessionError::Cancelled => RpcError::cancelled(),
+        error => RpcError::failed(error),
+    }
+}
 fn auth_error(error: pi_ai::AuthResolutionError) -> RpcError {
     match error {
         pi_ai::AuthResolutionError::Cancelled => RpcError::cancelled(),
@@ -2684,6 +2691,13 @@ mod tests {
         assert!(route(frame, &tx, reverse).is_none());
     }
 
+    #[test]
+    fn a_withdrawn_queue_admission_is_a_protocol_cancellation() {
+        assert_eq!(queue_error(SessionError::Cancelled).code, -32800);
+        let failed = queue_error(SessionError::Invalid("queued start rejected".into()));
+        assert_ne!(failed.code, -32800);
+        assert_eq!(failed.message, "queued start rejected");
+    }
     #[test]
     fn auth_notifications_preserve_each_non_secret_event_without_waiting() {
         let (interaction, mut received, reverse, _) = interaction();

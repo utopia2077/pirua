@@ -505,16 +505,9 @@ impl CodingSession {
         match result {
             Ok(true) => Ok(crate::QueueAdmission::Queued(ticket)),
             Ok(false) => Ok(crate::QueueAdmission::Handled),
-            Err(error) => {
-                if self.reject_input(ticket.id, error.to_string()) {
-                    Err(error)
-                } else {
-                    // The live driver can resolve this exact input while queue
-                    // notification awaits acknowledgement. Preserve its terminal
-                    // receipt instead of reporting a failed admission afterward.
-                    Ok(crate::QueueAdmission::Queued(ticket))
-                }
-            }
+            // The live driver can resolve this exact input while queue
+            // notification awaits acknowledgement; its receipt must survive.
+            Err(error) => self.fail_queue_admission(ticket, error),
         }
     }
     fn clear_queue_tracked_inner(&self) -> (Vec<crate::QueuedInput>, Vec<String>) {
