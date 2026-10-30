@@ -200,6 +200,84 @@ describe("original Pi presentation projection", () => {
 		expect(reasons).toEqual(["History revision mismatch"]);
 		expect(p.value.history.revision).toBe(0);
 	});
+	describe("the context of a history append", () => {
+		const user = (id: string, parentId: string | null, text: string) => ({
+			sourceEntry: {
+				id,
+				parentId,
+				timestamp: 1,
+				type: "message",
+				message: { role: "user", content: text, timestamp: 1 },
+			},
+			messages: [{ role: "user", content: text, timestamp: 1 }],
+		});
+		const held = (...entries: ReturnType<typeof user>[]) =>
+			snapshot({
+				history: {
+					header: { id: "s1", cwd: "/workspace/project", timestamp: 0 },
+					revision: entries.length,
+					leafId: entries.at(-1)?.sourceEntry.id ?? null,
+					entries: entries.map((e) => e.sourceEntry),
+				},
+				contextEntries: entries,
+				messages: entries.flatMap((e) => e.messages),
+			});
+		const append = (sequence: number, added: ReturnType<typeof user>[], rest: Record<string, unknown> = {}) => ({
+			sessionId: "s1",
+			epoch: "epoch1",
+			sequence,
+			changes: {},
+			historyChange: {
+				kind: "append",
+				baseRevision: 1,
+				revision: 2,
+				appended: added.map((e) => e.sourceEntry),
+				leafId: added.at(-1)?.sourceEntry.id ?? "a",
+				...rest,
+			},
+		});
+		it("extends the held context with the entries an append adds, and only those", () => {
+			const p = new SessionProjection(held(user("a", null, "first")));
+			const second = user("b", "a", "second");
+			p.receive("_pirua/session/changed", append(1, [second], { contextAppended: [second] }));
+			expect(p.value.contextEntries.map((e) => e.sourceEntry.id)).toEqual(["a", "b"]);
+			expect(p.value.messages.map((m: any) => m.content)).toEqual(["first", "second"]);
+			expect(p.value.history.entries.map((e) => e.id)).toEqual(["a", "b"]);
+			expect(p.value.history.revision).toBe(2);
+			// Entries that add no message still join the context entries.
+			const label = { sourceEntry: { id: "c", parentId: "b", timestamp: 2, type: "label", targetId: "a" }, messages: [] };
+			p.receive("_pirua/session/changed", {
+				...append(2, [], { baseRevision: 2, revision: 3, leafId: "c", appended: [label.sourceEntry], contextAppended: [label] }),
+			});
+			expect(p.value.contextEntries.map((e) => e.sourceEntry.id)).toEqual(["a", "b", "c"]);
+			expect(p.value.messages).toHaveLength(2);
+			expect(p.value.sequence).toBe(2);
+		});
+		it("does not share the held context with the frame that extended it", () => {
+			const p = new SessionProjection(held(user("a", null, "first")));
+			const second = user("b", "a", "second");
+			const frame = append(1, [second], { contextAppended: [second] });
+			p.receive("_pirua/session/changed", frame);
+			(frame.historyChange.contextAppended as any)[0].messages[0].content = "changed after the fact";
+			expect(p.value.messages.map((m: any) => m.content)).toEqual(["first", "second"]);
+		});
+		it("takes the whole context an older host sends with an append, as before", () => {
+			const p = new SessionProjection(held(user("a", null, "first")));
+			const second = user("b", "a", "second");
+			p.receive("_pirua/session/changed", {
+				...append(1, [second]),
+				changes: { messages: second.messages, contextEntries: [second] },
+			});
+			expect(p.value.contextEntries.map((e) => e.sourceEntry.id)).toEqual(["b"]);
+			expect(p.value.messages.map((m: any) => m.content)).toEqual(["second"]);
+		});
+		it("leaves the context alone for an append that carries neither form", () => {
+			const p = new SessionProjection(held(user("a", null, "first")));
+			p.receive("_pirua/session/changed", append(1, []));
+			expect(p.value.contextEntries).toHaveLength(1);
+			expect(p.value.messages).toHaveLength(1);
+		});
+	});
 	it("replaces configuration options from a standard config_option_update", () => {
 		const p = new SessionProjection(snapshot());
 		const configOptions = [

@@ -3,7 +3,7 @@ use crate::protocol::*;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use pi_agent::AgentEvent;
 use pi_coding_runtime::{ActivityOutcome, CodingSession, LoadedResources, SessionEvent};
-use pi_coding_session::{EntryContent, SessionSnapshot};
+use pi_coding_session::{EntryContent, ProjectedEntry, SessionEntry, SessionSnapshot};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 pub struct Projection {
@@ -175,21 +175,80 @@ impl Projection {
             entity["_meta"][RENDER]["message"] = native.clone();
         }
     }
+    /// Every view field, read from the live session.
     pub fn capture_view(session: &CodingSession, models: &[pi_ai::Model]) -> Value {
-        let (steer, follow) = session.queued_inputs();
-        json!({"model":session.model(),"routedModel":session.routed_model().map(|(m,_)|m),"thinkingLevel":session.thinking_level(),"availableThinkingLevels":session.available_thinking_levels(),"models":models,"scopedModels":session.scoped_models().iter().map(|m|json!({"model":m.model,"thinkingLevel":m.thinking_level})).collect::<Vec<_>>(),"configOptions":config(session,models),"queue":{"steering":steer.iter().map(queued).collect::<Vec<_>>(),"followUp":follow.iter().map(queued).collect::<Vec<_>>()},"tools":session.all_tools().into_iter().map(|t|json!({"declaration":t.declaration,"exposure":match t.exposure{pi_coding_runtime::ToolExposure::Direct=>"direct",pi_coding_runtime::ToolExposure::ModelOnly=>"modelOnly",pi_coding_runtime::ToolExposure::CodeMode=>"codeMode",pi_coding_runtime::ToolExposure::Deferred=>"deferred",pi_coding_runtime::ToolExposure::Hidden=>"hidden"},"source":t.source,"namespace":t.namespace})).collect::<Vec<_>>()})
+        Value::Object(
+            VIEW.iter()
+                .map(|key| {
+                    let value = view_field(session, models, key).expect("view field");
+                    ((*key).to_owned(), value)
+                })
+                .collect(),
+        )
     }
     pub fn snapshot(&self, _session: &CodingSession, _models: &[pi_ai::Model]) -> Value {
-        let context =
-            pi_coding_session::project(&self.history).expect("canonical observed history");
         let mut snapshot = self.view.clone();
-        let (stats, context_usage) = statistics(
-            &self.history,
-            &context,
-            self.view["model"]["contextWindow"].as_u64().unwrap_or(0),
-        );
-        for (key,value) in json!({"sessionId":self.history.header.id,"epoch":self.epoch,"sequence":self.sequence,"history":self.history,"messages":context.messages,"contextEntries":context.entries,"liveEntities":self.entity_order.iter().filter_map(|key|self.entities.get(key).cloned()).collect::<Vec<_>>(),"state":self.state,"activity":self.activity,"stats":stats,"contextUsage":context_usage,"settings":self.settings,"resources":self.resources,"authMethods":self.auth_methods}).as_object().unwrap(){snapshot[key]=value.clone();}
+        let mut derived = Derived::default();
+        for key in SNAPSHOT {
+            snapshot[key] = self.field(key, &mut derived);
+        }
         snapshot
+    }
+    /// The named snapshot fields, as `changes` for `_pirua/session/changed`, computed alone:
+    /// a view field is re-read from the live session and kept in the view, and the history
+    /// is projected only when a field derived from it is asked for.
+    pub fn fields(
+        &mut self,
+        session: &CodingSession,
+        models: &[pi_ai::Model],
+        keys: &[&str],
+    ) -> Value {
+        // The view first: a derived field reads it (the context window of the model).
+        let viewed = keys
+            .iter()
+            .map(|key| {
+                let value = view_field(session, models, key);
+                if let Some(value) = &value {
+                    self.view[*key] = value.clone();
+                }
+                value
+            })
+            .collect::<Vec<_>>();
+        let mut derived = Derived::default();
+        Value::Object(
+            keys.iter()
+                .zip(viewed)
+                .map(|(key, viewed)| {
+                    let value = viewed.unwrap_or_else(|| self.field(key, &mut derived));
+                    ((*key).to_owned(), value)
+                })
+                .collect(),
+        )
+    }
+    /// One field the projection itself owns; anything else is null, as in a snapshot.
+    fn field(&self, key: &str, derived: &mut Derived) -> Value {
+        match key {
+            "sessionId" => json!(self.history.header.id),
+            "epoch" => json!(self.epoch),
+            "sequence" => json!(self.sequence),
+            "history" => json!(self.history),
+            "messages" => json!(derived.context(&self.history).messages),
+            "contextEntries" => json!(derived.context(&self.history).entries),
+            "liveEntities" => json!(
+                self.entity_order
+                    .iter()
+                    .filter_map(|key| self.entities.get(key).cloned())
+                    .collect::<Vec<_>>()
+            ),
+            "state" => json!(self.state),
+            "activity" => self.activity.clone(),
+            "stats" => derived.statistics(&self.history, &self.view).0.clone(),
+            "contextUsage" => derived.statistics(&self.history, &self.view).1.clone(),
+            "settings" => self.settings.clone(),
+            "resources" => self.resources.clone(),
+            "authMethods" => self.auth_methods.clone(),
+            _ => Value::Null,
+        }
     }
     pub fn event(&mut self, event: SessionEvent) -> Vec<Value> {
         match event {
@@ -415,6 +474,126 @@ fn patch_meta(target: &mut Value, patch: &Value) {
             }
         }
     }
+}
+
+/// The fields of the live view, in snapshot order.
+const VIEW: [&str; 9] = [
+    "model",
+    "routedModel",
+    "thinkingLevel",
+    "availableThinkingLevels",
+    "models",
+    "scopedModels",
+    "configOptions",
+    "queue",
+    "tools",
+];
+/// The fields the projection owns, in snapshot order, after the view's.
+const SNAPSHOT: [&str; 14] = [
+    "sessionId",
+    "epoch",
+    "sequence",
+    "history",
+    "messages",
+    "contextEntries",
+    "liveEntities",
+    "state",
+    "activity",
+    "stats",
+    "contextUsage",
+    "settings",
+    "resources",
+    "authMethods",
+];
+fn view_field(session: &CodingSession, models: &[pi_ai::Model], key: &str) -> Option<Value> {
+    Some(match key {
+        "model" => json!(session.model()),
+        "routedModel" => json!(session.routed_model().map(|(m, _)| m)),
+        "thinkingLevel" => json!(session.thinking_level()),
+        "availableThinkingLevels" => json!(session.available_thinking_levels()),
+        "models" => json!(models),
+        "scopedModels" => json!(
+            session
+                .scoped_models()
+                .iter()
+                .map(|m| json!({"model":m.model,"thinkingLevel":m.thinking_level}))
+                .collect::<Vec<_>>()
+        ),
+        "configOptions" => config(session, models),
+        "queue" => {
+            let (steer, follow) = session.queued_inputs();
+            json!({"steering":steer.iter().map(queued).collect::<Vec<_>>(),"followUp":follow.iter().map(queued).collect::<Vec<_>>()})
+        }
+        "tools" => json!(
+            session
+                .all_tools()
+                .into_iter()
+                .map(|t| json!({"declaration":t.declaration,"exposure":match t.exposure{pi_coding_runtime::ToolExposure::Direct=>"direct",pi_coding_runtime::ToolExposure::ModelOnly=>"modelOnly",pi_coding_runtime::ToolExposure::CodeMode=>"codeMode",pi_coding_runtime::ToolExposure::Deferred=>"deferred",pi_coding_runtime::ToolExposure::Hidden=>"hidden"},"source":t.source,"namespace":t.namespace}))
+                .collect::<Vec<_>>()
+        ),
+        _ => return None,
+    })
+}
+/// What the fields of one request derive from the history, each computed once and only on use.
+#[derive(Default)]
+struct Derived {
+    context: Option<pi_coding_session::SessionProjection>,
+    statistics: Option<(Value, Value)>,
+}
+impl Derived {
+    fn context(&mut self, history: &SessionSnapshot) -> &pi_coding_session::SessionProjection {
+        self.context.get_or_insert_with(|| project_context(history))
+    }
+    fn statistics(&mut self, history: &SessionSnapshot, view: &Value) -> &(Value, Value) {
+        if self.statistics.is_none() {
+            let window = view["model"]["contextWindow"].as_u64().unwrap_or(0);
+            let statistics = statistics(history, self.context(history), window);
+            self.statistics = Some(statistics);
+        }
+        self.statistics.as_ref().expect("computed")
+    }
+}
+#[cfg(test)]
+thread_local! {
+    /// Projections of a whole history made by this thread: the work a field costs.
+    pub static PROJECTIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+/// The context a history projects to; the whole history is walked and copied.
+pub fn project_context(history: &SessionSnapshot) -> pi_coding_session::SessionProjection {
+    #[cfg(test)]
+    PROJECTIONS.with(|count| count.set(count.get() + 1));
+    pi_coding_session::project(history).expect("canonical observed history")
+}
+/// The context entries an append adds, when everything already projected stays as it is: the
+/// entries continue the path from the previous leaf, and none replaces the context before it
+/// (a compaction) or rewrites an earlier entry (a context edit). `None` means the whole
+/// context must be sent again.
+pub fn context_extension(
+    previous_leaf: Option<&str>,
+    appended: &[SessionEntry],
+    leaf: Option<&str>,
+) -> Option<Vec<ProjectedEntry>> {
+    let mut parent = previous_leaf;
+    for entry in appended {
+        if entry.parent_id.as_deref() != parent
+            || matches!(
+                entry.content,
+                EntryContent::Compaction { .. } | EntryContent::ContextEdit { .. }
+            )
+        {
+            return None;
+        }
+        parent = Some(&entry.id);
+    }
+    (parent == leaf).then(|| {
+        appended
+            .iter()
+            .map(|entry| ProjectedEntry {
+                source_entry: entry.clone(),
+                messages: pi_coding_session::project_entry(entry),
+            })
+            .collect()
+    })
 }
 
 pub fn queued(q: &pi_coding_runtime::QueuedInput) -> Value {
@@ -787,5 +966,312 @@ mod tests {
         for prefix in ["terminal", "command", "compact"] {
             assert_ne!(first.id(prefix), second.id(prefix));
         }
+    }
+
+    fn usage(input: u64) -> Value {
+        json!({"input":input,"output":1,"cacheRead":0,"cacheWrite":0,"totalTokens":input + 1,"cost":{"input":0.5,"output":0.25,"cacheRead":0,"cacheWrite":0,"total":0.75}})
+    }
+    fn assistant(text: &str, input: u64) -> Value {
+        let model = crate::fixture::model();
+        let mut message = serde_json::to_value(pi_agent::failure_message(
+            &model,
+            &pi_agent::AgentError::Callback(String::new()),
+            false,
+        ))
+        .unwrap();
+        message["content"] = json!([{"type":"text","text":text},{"type":"toolCall","id":"c1","name":"read","arguments":{}}]);
+        message["usage"] = usage(input);
+        message["stopReason"] = json!("toolUse");
+        message.as_object_mut().unwrap().remove("errorMessage");
+        message
+    }
+    fn user(text: &str) -> Value {
+        json!({"role":"user","content":text,"timestamp":1})
+    }
+    /// A history that uses every rule the projection and its statistics have: usage, tool
+    /// calls, a compaction with a kept tail, a context edit, a label, a name and a summary.
+    fn busy(store: Arc<dyn pi_coding_session::SessionStore>) -> SessionManager {
+        let mut manager = SessionManager::create(store, "/synthetic").unwrap();
+        manager.set_model("openai", "fixture").unwrap();
+        let first = manager.append_message(user("one")).unwrap();
+        manager.append_message(assistant("two", 10)).unwrap();
+        manager.append_message(json!({"role":"toolResult","toolCallId":"c1","toolName":"read","content":[{"type":"text","text":"three"}],"isError":false,"timestamp":1})).unwrap();
+        let kept = manager.append_message(user("four")).unwrap();
+        manager.append_message(assistant("five", 20)).unwrap();
+        manager
+            .append_compaction(pi_coding_session::CompactionOptions {
+                summary: "so far".into(),
+                first_kept_entry_id: Some(kept),
+                tokens_before: 100,
+                usage: Some(usage(7)),
+                ..Default::default()
+            })
+            .unwrap();
+        manager.append_message(user("six")).unwrap();
+        let last = manager.append_message(assistant("seven", 30)).unwrap();
+        manager
+            .edit_context(
+                &last,
+                Some(pi_coding_session::ContentReplacement {
+                    content: json!("edited"),
+                }),
+            )
+            .unwrap();
+        manager.set_label(&first, Some("start".into())).unwrap();
+        manager.set_name("busy").unwrap();
+        manager.set_thinking_level("high").unwrap();
+        manager
+    }
+    async fn live(manager: SessionManager, model: &pi_ai::Model) -> CodingSession {
+        pi_coding_runtime::CodingSessionBuilder::new(
+            manager,
+            model.clone(),
+            crate::fixture::stream(1),
+        )
+        .with_model_runtime(Arc::new(pi_coding_runtime::StaticModelRuntime::new(vec![
+            model.clone(),
+        ])))
+        .with_hooks(Arc::new(crate::fixture::Hooks))
+        .build()
+        .await
+        .unwrap()
+    }
+    /// The view as the whole-snapshot code built it, before each field could be read alone.
+    fn reference_view(session: &CodingSession, models: &[pi_ai::Model]) -> Value {
+        let (steer, follow) = session.queued_inputs();
+        json!({"model":session.model(),"routedModel":session.routed_model().map(|(m,_)|m),"thinkingLevel":session.thinking_level(),"availableThinkingLevels":session.available_thinking_levels(),"models":models,"scopedModels":session.scoped_models().iter().map(|m|json!({"model":m.model,"thinkingLevel":m.thinking_level})).collect::<Vec<_>>(),"configOptions":config(session,models),"queue":{"steering":steer.iter().map(queued).collect::<Vec<_>>(),"followUp":follow.iter().map(queued).collect::<Vec<_>>()},"tools":session.all_tools().into_iter().map(|t|json!({"declaration":t.declaration,"exposure":match t.exposure{pi_coding_runtime::ToolExposure::Direct=>"direct",pi_coding_runtime::ToolExposure::ModelOnly=>"modelOnly",pi_coding_runtime::ToolExposure::CodeMode=>"codeMode",pi_coding_runtime::ToolExposure::Deferred=>"deferred",pi_coding_runtime::ToolExposure::Hidden=>"hidden"},"source":t.source,"namespace":t.namespace})).collect::<Vec<_>>()})
+    }
+    /// The snapshot as it was built whole, before fields could be computed one at a time.
+    fn reference_snapshot(p: &Projection) -> Value {
+        let context = pi_coding_session::project(&p.history).expect("canonical observed history");
+        let mut snapshot = p.view.clone();
+        let (stats, context_usage) = statistics(
+            &p.history,
+            &context,
+            p.view["model"]["contextWindow"].as_u64().unwrap_or(0),
+        );
+        for (key,value) in json!({"sessionId":p.history.header.id,"epoch":p.epoch,"sequence":p.sequence,"history":p.history,"messages":context.messages,"contextEntries":context.entries,"liveEntities":p.entity_order.iter().filter_map(|key|p.entities.get(key).cloned()).collect::<Vec<_>>(),"state":p.state,"activity":p.activity,"stats":stats,"contextUsage":context_usage,"settings":p.settings,"resources":p.resources,"authMethods":p.auth_methods}).as_object().unwrap(){snapshot[key]=value.clone();}
+        snapshot
+    }
+    async fn busy_projection() -> (Projection, CodingSession, Vec<pi_ai::Model>) {
+        let store: Arc<dyn pi_coding_session::SessionStore> = Arc::new(MemoryStore::new());
+        let manager = busy(store.clone());
+        let model = crate::fixture::model();
+        let models = vec![model.clone()];
+        let session = live(
+            SessionManager::open(store, &manager.header().id).unwrap(),
+            &model,
+        )
+        .await;
+        let mut p = Projection::new(
+            manager.snapshot().clone(),
+            &LoadedResources::default(),
+            json!({"retry":{"enabled":true}}),
+        );
+        p.view = Projection::capture_view(&session, &models);
+        p.auth_methods = json!([{"methodId":"openai:apiKey"}]);
+        p.state = "running".into();
+        p.standard(
+            "synthetic",
+            json!({"sessionUpdate":"agent_message_chunk","messageId":"live-1","content":{"type":"text","text":"streaming"}}),
+            true,
+        );
+        (p, session, models)
+    }
+
+    #[tokio::test]
+    async fn the_snapshot_and_its_view_are_byte_identical_to_the_whole_ones_they_replaced() {
+        let (p, session, models) = busy_projection().await;
+        let (view, reference) = (
+            Projection::capture_view(&session, &models),
+            reference_view(&session, &models),
+        );
+        assert!(view["tools"].is_array() && view["models"].as_array().unwrap().len() == 1);
+        assert_eq!(view.to_string(), reference.to_string());
+        let snapshot = p.snapshot(&session, &models);
+        assert!(snapshot["stats"]["usage"]["input"].as_u64().unwrap() > 0);
+        assert!(snapshot["contextUsage"].is_object());
+        assert_eq!(snapshot.to_string(), reference_snapshot(&p).to_string());
+    }
+
+    #[tokio::test]
+    async fn a_field_costs_only_the_work_it_needs_and_equals_its_part_of_the_snapshot() {
+        let (mut p, session, models) = busy_projection().await;
+        let projections = || PROJECTIONS.with(std::cell::Cell::get);
+        let snapshot = p.snapshot(&session, &models);
+        assert_eq!(projections(), 1, "the snapshot projects the history once");
+        let before = projections();
+        let changes = p.fields(
+            &session,
+            &models,
+            &[
+                "queue",
+                "state",
+                "activity",
+                "scopedModels",
+                "liveEntities",
+                "settings",
+            ],
+        );
+        assert_eq!(projections(), before, "no history is projected for these");
+        let before = projections();
+        let derived = p.fields(
+            &session,
+            &models,
+            &["messages", "contextEntries", "stats", "contextUsage"],
+        );
+        assert_eq!(projections(), before + 1, "one projection serves all four");
+        let before = projections();
+        let one = p.fields(&session, &models, &["stats"]);
+        assert_eq!(projections(), before + 1);
+        for part in [&changes, &derived, &one] {
+            for (key, value) in part.as_object().unwrap() {
+                assert_eq!(value, &snapshot[key.as_str()], "{key}");
+            }
+        }
+        // Every field a snapshot has can be asked for alone.
+        for key in VIEW.iter().chain(SNAPSHOT.iter()) {
+            let alone = p.fields(&session, &models, &[key]);
+            assert_eq!(alone[*key], snapshot[*key], "{key}");
+        }
+    }
+
+    #[test]
+    fn an_append_extends_the_context_only_when_nothing_before_it_changes() {
+        let mut manager =
+            SessionManager::create(Arc::new(MemoryStore::new()), "/synthetic").unwrap();
+        let mut observed = manager.observe_history();
+        let mut history = observed.snapshot.clone();
+        let mut context = pi_coding_session::project(&history).unwrap().entries;
+        let mut seed = 0x9e37_79b9_7f4a_7c15_u64;
+        let mut roll = |bound: usize| {
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (seed >> 33) as usize % bound
+        };
+        let (mut extended, mut resent) = (0, 0);
+        for step in 0..400 {
+            let all = manager
+                .entries()
+                .iter()
+                .map(|e| e.id.clone())
+                .collect::<Vec<_>>();
+            let path = manager
+                .get_branch()
+                .iter()
+                .map(|e| e.id.clone())
+                .collect::<Vec<_>>();
+            // Some(true): the step replaces or rewrites context; Some(false): it only adds to its end.
+            let (kind, restructures) = match roll(12) {
+                0 | 1 => {
+                    manager
+                        .append_message(user(&format!("user {step}")))
+                        .unwrap();
+                    ("user", Some(false))
+                }
+                2 | 3 => {
+                    manager
+                        .append_message(assistant(&format!("reply {step}"), step))
+                        .unwrap();
+                    ("assistant", Some(false))
+                }
+                4 => {
+                    manager
+                        .set_model("openai", format!("model-{step}"))
+                        .unwrap();
+                    ("model", Some(false))
+                }
+                5 => {
+                    manager.set_thinking_level("high").unwrap();
+                    ("thinking", Some(false))
+                }
+                6 => {
+                    manager.set_name(&format!("name {step}")).unwrap();
+                    ("name", Some(false))
+                }
+                7 if !all.is_empty() => {
+                    let target = all[roll(all.len())].clone();
+                    let label = Some(format!("label {step}"));
+                    manager.set_label(&target, label).unwrap();
+                    ("label", Some(false))
+                }
+                8 if !all.is_empty() => {
+                    let target = all[roll(all.len())].clone();
+                    manager.branch(Some(&target)).unwrap();
+                    ("branch", None)
+                }
+                9 if !all.is_empty() => {
+                    let target = all[roll(all.len())].clone();
+                    let summary = format!("summary {step}");
+                    manager
+                        .branch_with_summary(Some(&target), summary, None, None)
+                        .unwrap();
+                    ("summary", None)
+                }
+                10 if !path.is_empty() => {
+                    let kept = path[roll(path.len())].clone();
+                    manager
+                        .append_compaction(pi_coding_session::CompactionOptions {
+                            summary: format!("compacted {step}"),
+                            first_kept_entry_id: Some(kept),
+                            tokens_before: 10,
+                            ..Default::default()
+                        })
+                        .unwrap();
+                    ("compaction", Some(true))
+                }
+                11 if !path.is_empty() => {
+                    let target = path[roll(path.len())].clone();
+                    let replacement =
+                        (roll(2) == 0).then(|| pi_coding_session::ContentReplacement {
+                            content: json!(format!("edit {step}")),
+                        });
+                    if manager.edit_context(&target, replacement).is_err() {
+                        continue;
+                    }
+                    ("edit", Some(true))
+                }
+                _ => continue,
+            };
+            while let Ok(change) = observed.changes.try_recv() {
+                let pi_coding_session::HistoryChange::Committed {
+                    appended,
+                    leaf_id,
+                    revision,
+                    ..
+                } = change
+                else {
+                    panic!("the manager only commits here")
+                };
+                let extension =
+                    context_extension(history.leaf_id.as_deref(), &appended, leaf_id.as_deref());
+                history.entries.extend(appended);
+                history.leaf_id = leaf_id;
+                history.revision = revision;
+                let whole = pi_coding_session::project(&history).unwrap();
+                if let Some(restructures) = restructures {
+                    assert_eq!(extension.is_none(), restructures, "step {step}: {kind}");
+                }
+                if let Some(added) = extension {
+                    // What the client holds, plus what the append says, is the whole context.
+                    let merged = context.iter().cloned().chain(added).collect::<Vec<_>>();
+                    assert_eq!(merged, whole.entries, "step {step}: {kind}");
+                    let messages = merged
+                        .iter()
+                        .flat_map(|e| e.messages.clone())
+                        .collect::<Vec<_>>();
+                    assert_eq!(messages, whole.messages, "step {step}: {kind}");
+                    extended += 1;
+                } else {
+                    resent += 1;
+                }
+                context = whole.entries;
+            }
+        }
+        assert!(
+            extended > 100 && resent > 20,
+            "{extended} extended, {resent} resent"
+        );
     }
 }

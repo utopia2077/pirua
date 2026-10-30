@@ -121,6 +121,9 @@ struct Host {
     reverse: Reverse,
     initialized: bool,
     pi: bool,
+    /// The client extends its context from `historyChange.contextAppended`; it does not need
+    /// the whole projected context sent again with every append.
+    context_append: bool,
     elicitation: bool,
     owners: BTreeMap<String, Owner>,
     pending: BTreeMap<String, Pending>,
@@ -182,6 +185,7 @@ where
         reverse: reverse.clone(),
         initialized: false,
         pi: false,
+        context_append: false,
         elicitation: false,
         owners: BTreeMap::new(),
         pending: BTreeMap::new(),
@@ -442,6 +446,8 @@ impl Host {
             return;
         };
         let mut updates = Vec::new();
+        // The context an append adds, when the client can extend its own with it.
+        let mut extension = None;
         let history_change = match change {
             HistoryChange::Committed {
                 session_id: _,
@@ -472,10 +478,21 @@ impl Host {
                         }
                     }
                 }
+                if self.context_append {
+                    extension = projection::context_extension(
+                        owner.projection.history.leaf_id.as_deref(),
+                        &appended,
+                        leaf_id.as_deref(),
+                    );
+                }
                 owner.projection.history.entries.extend(appended.clone());
                 owner.projection.history.revision = revision;
                 owner.projection.history.leaf_id = leaf_id.clone();
-                json!({"kind":"append","baseRevision":base_revision,"revision":revision,"appended":appended,"leafId":leaf_id})
+                let mut change = json!({"kind":"append","baseRevision":base_revision,"revision":revision,"appended":appended,"leafId":leaf_id});
+                if let Some(context) = &extension {
+                    change["contextAppended"] = json!(context);
+                }
+                change
             }
             HistoryChange::Replaced { snapshot } => {
                 owner.projection.history = snapshot.clone();
@@ -488,11 +505,16 @@ impl Host {
                 .send(owner.projection.standard(id, update, self.pi));
         }
         if self.pi {
-            let context = pi_coding_session::project(&owner.projection.history)
-                .expect("observed canonical history");
+            // Whole, unless the append only extends what the client already holds.
+            let changes = if extension.is_some() {
+                json!({})
+            } else {
+                let context = projection::project_context(&owner.projection.history);
+                json!({"messages":context.messages,"contextEntries":context.entries})
+            };
             let _ = self.output.send(owner.projection.changed(
                 id,
-                json!({"messages":context.messages,"contextEntries":context.entries}),
+                changes,
                 Some(history_change),
                 None,
             ));
@@ -574,25 +596,12 @@ impl Host {
             return;
         }
         if let Some(owner) = self.owners.get_mut(id) {
-            let captured = Projection::capture_view(&owner.session, &self.application.models);
-            for key in fields {
-                if let Some(value) = captured.get(*key) {
-                    owner.projection.view[*key] = value.clone();
-                }
-            }
-            let snapshot = owner
+            let changes = owner
                 .projection
-                .snapshot(&owner.session, &self.application.models);
-            let changes = fields
-                .iter()
-                .map(|key| ((*key).to_owned(), snapshot[*key].clone()))
-                .collect::<serde_json::Map<_, _>>();
-            let _ = self.output.send(owner.projection.changed(
-                id,
-                Value::Object(changes),
-                None,
-                None,
-            ));
+                .fields(&owner.session, &self.application.models, fields);
+            let _ = self
+                .output
+                .send(owner.projection.changed(id, changes, None, None));
         }
     }
     fn standard(&mut self, id: &str, update: Value) {
@@ -751,6 +760,8 @@ impl Host {
                 }
                 self.initialized = true;
                 self.pi = params["capabilities"]["_meta"][TUI]["version"] == 1;
+                self.context_append =
+                    self.pi && params["capabilities"]["_meta"][TUI]["contextAppend"] == true;
                 self.elicitation = params["capabilities"]["elicitation"]["form"].is_object();
                 Ok(())
             })();
@@ -1669,24 +1680,26 @@ impl Host {
         owner.projection.settings["steeringMode"] = json!(owner.session.agent().steering_mode());
         owner.projection.settings["followUpMode"] = json!(owner.session.agent().follow_up_mode());
         self.settle_projection(id);
-        self.publish_fields(
-            id,
-            &[
-                "model",
-                "routedModel",
-                "thinkingLevel",
-                "availableThinkingLevels",
-                "configOptions",
-                "messages",
-                "contextEntries",
-                "queue",
-                "activity",
-                "stats",
-                "contextUsage",
-                "settings",
-                "liveEntities",
-            ],
-        );
+        // The context only changes with the history, which announced each change already.
+        let fields = [
+            "model",
+            "routedModel",
+            "thinkingLevel",
+            "availableThinkingLevels",
+            "configOptions",
+            "messages",
+            "contextEntries",
+            "queue",
+            "activity",
+            "stats",
+            "contextUsage",
+            "settings",
+            "liveEntities",
+        ]
+        .into_iter()
+        .filter(|field| !(self.context_append && matches!(*field, "messages" | "contextEntries")))
+        .collect::<Vec<_>>();
+        self.publish_fields(id, &fields);
         if include_snapshot
             && let Some(Ok(value)) = &mut reply_value
             && let Some(owner) = self.owners.get(id)
@@ -2267,6 +2280,18 @@ mod tests {
         mpsc::UnboundedReceiver<Value>,
         String,
     ) {
+        open_as(root, application, false).await
+    }
+    /// `context_append`: the client extends its context from appends, as the TUI does.
+    async fn open_as(
+        root: &Root,
+        application: Application,
+        context_append: bool,
+    ) -> (
+        mpsc::UnboundedSender<Event>,
+        mpsc::UnboundedReceiver<Value>,
+        String,
+    ) {
         let (sender, output) = mpsc::unbounded_channel();
         let (tx, rx) = mpsc::unbounded_channel();
         let host = Host {
@@ -2282,6 +2307,7 @@ mod tests {
             reverse: Reverse::default(),
             initialized: false,
             pi: false,
+            context_append: false,
             elicitation: false,
             owners: BTreeMap::new(),
             pending: BTreeMap::new(),
@@ -2291,7 +2317,7 @@ mod tests {
             auth_methods: vec![],
         };
         tokio::spawn(host.run());
-        call(&tx, json!(1), "initialize", json!({"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{"_meta":{TUI:{"version":1}}}}))
+        call(&tx, json!(1), "initialize", json!({"protocolVersion":2,"info":{"name":"unit","version":"1"},"capabilities":{"_meta":{TUI:{"version":1,"contextAppend":context_append}}}}))
             .await
             .unwrap()
             .unwrap();
@@ -2440,22 +2466,25 @@ mod tests {
         .unwrap()
         .expect("the owner stays registered")
     }
-    /// Waits for the turn that ends after this call to settle.
-    async fn settled(output: &mut mpsc::UnboundedReceiver<Value>, s: &str) {
+    /// Waits for the turn that ends after this call to settle; returns every frame up to its end.
+    async fn settled(output: &mut mpsc::UnboundedReceiver<Value>, s: &str) -> Vec<Value> {
+        let mut frames = vec![];
         tokio::time::timeout(Duration::from_secs(5), async {
             while let Some(frame) = output.recv().await {
                 let update = &frame["params"]["update"];
-                if frame["params"]["sessionId"] == s
+                let end = frame["params"]["sessionId"] == s
                     && update["sessionUpdate"] == "state_update"
                     && update["state"] == "idle"
-                    && update["stopReason"] == "end_turn"
-                {
+                    && update["stopReason"] == "end_turn";
+                frames.push(frame);
+                if end {
                     return;
                 }
             }
         })
         .await
         .expect("the turn settles");
+        frames
     }
     /// Prompts the fixture provider to report the user messages in the context of its
     /// request: the live context the next turn runs on, not the stored history.
@@ -2688,6 +2717,167 @@ mod tests {
             .expect("the reopened session admits a prompt");
         assert!(receipt["messageId"].is_string(), "{receipt}");
         shutdown(&tx).await;
+    }
+
+    /// What a client sees of `turns` prompts: the frames that announced history appends, in
+    /// order, grouped by turn, and the whole projections the server made meanwhile.
+    struct Growth {
+        turns: Vec<Vec<Value>>,
+        /// Frames of any kind that carried the whole context.
+        whole: usize,
+        projections: usize,
+        context: (Vec<Value>, Vec<Value>),
+        snapshot: Value,
+    }
+    async fn grow(root: &Root, context_append: bool, turns: usize) -> Growth {
+        let (tx, mut output, s) = open_as(root, root.application().await, context_append).await;
+        let held = snapshot(&tx, 100, &s).await;
+        let mut context = (
+            held["messages"].as_array().unwrap().clone(),
+            held["contextEntries"].as_array().unwrap().clone(),
+        );
+        let before = projection::PROJECTIONS.with(Cell::get);
+        let mut grown = vec![];
+        let mut whole = 0;
+        for turn in 0..turns {
+            let text = format!("turn {turn} {}", "padding ".repeat(64));
+            prompt(&tx, 101 + turn as u64, &s, &text)
+                .await
+                .unwrap()
+                .unwrap();
+            let frames = settled(&mut output, &s).await;
+            whole += frames
+                .iter()
+                .filter(|frame| {
+                    frame["method"] == "_pirua/session/changed"
+                        && frame["params"]["changes"].get("messages").is_some()
+                })
+                .count();
+            let appends = frames
+                .into_iter()
+                .filter(|frame| {
+                    frame["method"] == "_pirua/session/changed"
+                        && frame["params"]["historyChange"]["kind"] == "append"
+                })
+                .collect::<Vec<_>>();
+            for frame in &appends {
+                // What a client does with the frame.
+                let params = &frame["params"];
+                match params["historyChange"]["contextAppended"].as_array() {
+                    Some(added) => {
+                        for entry in added {
+                            context
+                                .0
+                                .extend(entry["messages"].as_array().unwrap().clone());
+                            context.1.push(entry.clone());
+                        }
+                    }
+                    None => {
+                        context.0 = params["changes"]["messages"].as_array().unwrap().clone();
+                        context.1 = params["changes"]["contextEntries"]
+                            .as_array()
+                            .unwrap()
+                            .clone();
+                    }
+                }
+            }
+            grown.push(appends);
+        }
+        let projections = projection::PROJECTIONS.with(Cell::get) - before;
+        let snapshot = snapshot(&tx, 200, &s).await;
+        shutdown(&tx).await;
+        Growth {
+            turns: grown,
+            whole,
+            projections,
+            context,
+            snapshot,
+        }
+    }
+    fn bytes(frames: &[Value]) -> usize {
+        frames.iter().map(|frame| frame.to_string().len()).sum()
+    }
+
+    #[tokio::test]
+    async fn an_append_costs_the_same_however_long_the_session_has_run() {
+        let root = Root::new();
+        let turns = 6;
+        let extending = grow(&root, true, turns).await;
+        for frame in extending.turns.iter().flatten() {
+            let (changes, change) = (
+                &frame["params"]["changes"],
+                &frame["params"]["historyChange"],
+            );
+            assert!(changes.get("messages").is_none() && changes.get("contextEntries").is_none());
+            // The entries the append adds to the context, each beside its source entry.
+            let added = change["contextAppended"].as_array().unwrap();
+            let appended = change["appended"].as_array().unwrap();
+            assert_eq!(added.len(), appended.len());
+            for (entry, source) in added.iter().zip(appended) {
+                assert_eq!(entry["sourceEntry"], *source);
+            }
+        }
+        // From the second turn on (the first also carries the session's setup) the frames of
+        // each turn are the same size, and following them yields the context a snapshot holds.
+        let (second, last) = (
+            bytes(&extending.turns[1]),
+            bytes(&extending.turns[turns - 1]),
+        );
+        assert!(
+            last <= second + second / 50,
+            "{second} bytes grew to {last}"
+        );
+        assert_eq!(extending.whole, 0, "no frame needs the whole context");
+        assert_eq!(
+            extending.context.0,
+            *extending.snapshot["messages"].as_array().unwrap()
+        );
+        assert_eq!(
+            extending.context.1,
+            *extending.snapshot["contextEntries"].as_array().unwrap()
+        );
+        assert!(extending.context.0.len() >= 2 * turns);
+        // Whole histories projected: once per turn, for its statistics.
+        assert!(
+            extending.projections <= turns,
+            "{} projections for {turns} turns",
+            extending.projections
+        );
+
+        // A client that does not say it extends its context gets all of it with every append.
+        let whole = grow(&root, false, turns).await;
+        let (second, last) = (bytes(&whole.turns[1]), bytes(&whole.turns[turns - 1]));
+        // Every earlier turn is sent again, on top of what the second turn carried.
+        let added = whole.turns[1]
+            .iter()
+            .map(|frame| {
+                frame["params"]["historyChange"]["appended"]
+                    .to_string()
+                    .len()
+            })
+            .sum::<usize>();
+        assert!(
+            last >= second + (turns - 2) * added,
+            "{second} bytes grew only to {last} ({added} added per turn)"
+        );
+        for frame in whole.turns.iter().flatten() {
+            assert!(frame["params"]["changes"]["messages"].is_array());
+            assert!(
+                frame["params"]["historyChange"]
+                    .get("contextAppended")
+                    .is_none()
+            );
+        }
+        assert!(whole.whole >= 3 * turns, "{} whole contexts", whole.whole);
+        assert_eq!(
+            whole.context.0,
+            *whole.snapshot["messages"].as_array().unwrap()
+        );
+        assert!(
+            whole.projections >= 2 * turns,
+            "{} projections for {turns} turns",
+            whole.projections
+        );
     }
 
     struct Input(mpsc::UnboundedReceiver<std::io::Result<Vec<u8>>>);
@@ -2986,6 +3176,7 @@ mod tests {
             reverse: Reverse::default(),
             initialized: false,
             pi: false,
+            context_append: false,
             elicitation: false,
             owners: BTreeMap::new(),
             pending: BTreeMap::new(),

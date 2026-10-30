@@ -345,6 +345,12 @@ export class SessionProjection {
 		const before = this.value;
 		const next: PiSnapshot = { ...this.value, ...structuredClone(params.changes ?? {}) };
 		this.value = next;
+		// An append that left the rest of the context as it was carries only what it adds to its end.
+		if (params.historyChange?.kind === "append" && Array.isArray(params.historyChange.contextAppended)) {
+			const added: PiSnapshot["contextEntries"] = structuredClone(params.historyChange.contextAppended);
+			next.contextEntries.push(...added);
+			next.messages.push(...added.flatMap((entry) => entry.messages));
+		}
 		if (params.changes?.queue)
 			this.emit({
 				type: "queue_update",

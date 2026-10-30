@@ -211,6 +211,11 @@ before calling. An unrecognized version does not negotiate this profile. Standar
 ACP remains usable without this capability; the full original Pi client requires
 the snapshot profile and explains a mismatch before entering interactive mode.
 
+A client may add `contextAppend: true` to its own capability object. It tells the
+server that the client extends its context from `historyChange.contextAppended` (see
+"Snapshot and change projection"); without it the server sends the whole context with
+every history change. A server that ignores the flag sends the whole context anyway.
+
 | Group | Method | Parameters after `sessionId` | Result |
 | --- | --- | --- | --- |
 | snapshot | `_pirua/session/snapshot` | none | `PiSnapshot` |
@@ -305,6 +310,18 @@ identity and history. Omitted fields remain unchanged. `historyChange` is either
 `{kind:"replace", history}`. An empty append can move the leaf. Apply append only
 to its matching session/epoch/base revision; otherwise fetch a new snapshot. This
 is a process-local projection stream, not a reconnect log or persistence protocol.
+
+A history change carries the whole `messages` and `contextEntries` in `changes`, which
+costs the entire context for every appended entry. A client that negotiated
+`contextAppend` gets a cheaper form when the append only adds to the end of the
+context: `historyChange.contextAppended` lists the added `contextEntries` items, one
+per appended entry in order, and the added `messages` are those items' messages. The
+client appends both to what it holds, and `changes` omits both fields. An append that
+replaces or rewrites earlier context (a compaction, a context edit, a move to another
+branch) and any `replace` still send both fields whole, without `contextAppended`.
+The context changes only with the history, so for such a client no other change
+carries it; clients without `contextAppend` still also receive both fields when a
+foreground operation finishes.
 
 `inputResolution` is `{submissionId, outcome, messageId?, error?}` where outcome is
 `inserted`, `handled`, `cancelled` or `rejected`. Only `inserted` includes the retained

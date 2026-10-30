@@ -44,7 +44,7 @@ export class TuiRuntimeHost {
 	async initialize(sessionId?: string): Promise<void> {
 		const init = await this.client.request("initialize", {
 			protocolVersion: 2,
-			capabilities: { elicitation: { form: {}, url: {} }, _meta: { [PROFILE]: { version: 1 } } },
+			capabilities: { elicitation: { form: {}, url: {} }, _meta: { [PROFILE]: { version: 1, contextAppend: true } } },
 			info: { name: "pirua-tui", version: "0.1.0" },
 		});
 		if (init.protocolVersion !== 2) throw new Error("Rust host did not select ACP v2");

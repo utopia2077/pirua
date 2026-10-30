@@ -123,6 +123,52 @@ describe.skipIf(!binary)("original UI facade with the real Rust host", () => {
 			await rm(directory, { recursive: true, force: true });
 		}
 	}, 20000);
+
+	it("keeps the context of its mirror as the host's while appends carry only what they add", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "pirua-tui-append-"));
+		const child = spawn(
+			binary!,
+			["--data-dir", directory, "--config-dir", join(directory, "config"), "--fixture-provider", "--fixture-delay-ms", "5"],
+			{ stdio: ["pipe", "pipe", "pipe"] },
+		);
+		const client = new AcpClient(child.stdout, child.stdin);
+		child.on("error", (e) => client.fail(e));
+		const frames: any[] = [];
+		client.onNotification((method, params) => {
+			if (method === "_pirua/session/changed") frames.push(params);
+		});
+		const host = new TuiRuntimeHost(client, {
+			child,
+			cwd: directory,
+			settings: new ClientSettings(join(directory, "ui.json")),
+		});
+		try {
+			await host.initialize();
+			for (const text of ["first", "fixture:tool", "third"]) {
+				await host.session.prompt(text);
+				await host.session.waitForIdle();
+			}
+			// Nothing asked the host for a snapshot since the session opened: the mirror followed the frames.
+			const appends = frames.filter((frame) => frame.historyChange?.kind === "append");
+			expect(appends.length).toBeGreaterThanOrEqual(6);
+			for (const frame of appends) {
+				expect(frame.changes.messages).toBeUndefined();
+				expect(frame.changes.contextEntries).toBeUndefined();
+				expect(frame.historyChange.contextAppended).toHaveLength(frame.historyChange.appended.length);
+			}
+			expect(frames.some((frame) => frame.changes.messages !== undefined)).toBe(false);
+			expect(host.session.getLastAssistantText()).toContain("Fixture response: third");
+			const held = host.session.projection.value;
+			const current = await client.request("_pirua/session/snapshot", { sessionId: host.session.sessionId });
+			expect(held.messages.length).toBeGreaterThan(6);
+			expect(held.messages).toEqual(current.messages);
+			expect(held.contextEntries).toEqual(current.contextEntries);
+			expect(held.history).toEqual(current.history);
+		} finally {
+			await host.dispose();
+			await rm(directory, { recursive: true, force: true });
+		}
+	}, 20000);
 });
 
 describe.skipIf(!binary)("native API-key dialog without provider requests", () => {
