@@ -108,7 +108,8 @@ struct Owner {
     operation_request: Option<(String, CancellationToken)>,
     cancel_replies: Vec<Reply>,
     close_replies: Vec<Reply>,
-    /// `session/resume` requests received while closing; each runs again once the owner is gone.
+    /// `session/resume` requests received while closing, and closes that follow them; each runs
+    /// again, in order, once the owner is gone.
     resumes: Vec<Call>,
     admission: Arc<tokio::sync::Mutex<()>>,
 }
@@ -1080,6 +1081,16 @@ impl Host {
                         };
                         self.contracts.validate(contract, params)?;
                         let owner = self.owners.get_mut(&id).unwrap();
+                        if method == "session/close" && !owner.resumes.is_empty() {
+                            // A resume ahead of it reopens the session: close that one, not this.
+                            owner.resumes.push(Call {
+                                id: serde_json::from_str(key).unwrap(),
+                                method: method.into(),
+                                params: params.clone(),
+                                reply: reply.take().unwrap(),
+                            });
+                            return Ok(None);
+                        }
                         if method == "session/close" {
                             owner.closing = true;
                             owner.close_replies.push(reply.take().unwrap());
@@ -2716,6 +2727,39 @@ mod tests {
             .unwrap()
             .expect("the reopened session admits a prompt");
         assert!(receipt["messageId"].is_string(), "{receipt}");
+        shutdown(&tx).await;
+    }
+
+    #[tokio::test]
+    async fn a_close_after_a_parked_resume_closes_the_reopened_session() {
+        let root = Root::new();
+        let (tx, _output, s) = open(&root).await;
+        let cwd = root.0.to_string_lossy().to_string();
+        let running = prompt(&tx, 60, &s, "fixture:block");
+        let first = call(&tx, json!(61), "session/close", json!({"sessionId":s}));
+        let resume = call(
+            &tx,
+            json!(62),
+            "session/resume",
+            json!({"sessionId":s,"cwd":cwd}),
+        );
+        let second = call(&tx, json!(63), "session/close", json!({"sessionId":s}));
+        first.await.unwrap().expect("the first close is answered");
+        resume
+            .await
+            .unwrap()
+            .expect("the parked resume reopens the session");
+        tokio::time::timeout(Duration::from_secs(5), second)
+            .await
+            .expect("the second close is answered")
+            .unwrap()
+            .expect("the second close succeeds");
+        let _ = running.await;
+        // Requests take effect in the order sent: the last one closed the reopened session.
+        assert!(
+            epoch(&tx, 64, &s).await.is_err(),
+            "the reopened session must be closed"
+        );
         shutdown(&tx).await;
     }
 
