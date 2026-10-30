@@ -2426,7 +2426,7 @@ mod tests {
         assert_eq!(changed["method"], "_pirua/session/changed", "{changed}");
         assert_eq!(changed["params"]["changes"]["state"], "idle", "{changed}");
     }
-    async fn snapshot_messages(tx: &mpsc::UnboundedSender<Event>, id: u64, s: &str) -> String {
+    async fn snapshot(tx: &mpsc::UnboundedSender<Event>, id: u64, s: &str) -> Value {
         call(
             tx,
             json!(id),
@@ -2435,8 +2435,55 @@ mod tests {
         )
         .await
         .unwrap()
-        .expect("the owner stays registered")["messages"]
-            .to_string()
+        .expect("the owner stays registered")
+    }
+    /// Waits for the turn that ends after this call to settle.
+    async fn settled(output: &mut mpsc::UnboundedReceiver<Value>, s: &str) {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while let Some(frame) = output.recv().await {
+                let update = &frame["params"]["update"];
+                if frame["params"]["sessionId"] == s
+                    && update["sessionUpdate"] == "state_update"
+                    && update["state"] == "idle"
+                    && update["stopReason"] == "end_turn"
+                {
+                    return;
+                }
+            }
+        })
+        .await
+        .expect("the turn settles");
+    }
+    /// Prompts the fixture provider to report the user messages in the context of its
+    /// request: the live context the next turn runs on, not the stored history.
+    async fn provider_context(
+        tx: &mpsc::UnboundedSender<Event>,
+        output: &mut mpsc::UnboundedReceiver<Value>,
+        id: u64,
+        s: &str,
+    ) -> Vec<String> {
+        let receipt = prompt(tx, id, s, "fixture:context")
+            .await
+            .unwrap()
+            .expect("the session admits the prompt");
+        assert!(receipt["messageId"].is_string(), "{receipt}");
+        settled(output, s).await;
+        let messages = snapshot(tx, id + 1, s).await["messages"].clone();
+        let answer = messages
+            .as_array()
+            .unwrap()
+            .iter()
+            .rev()
+            .find(|message| message["role"] == "assistant")
+            .expect("the provider answered");
+        let text = answer["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .rev()
+            .find_map(|block| block["text"].as_str())
+            .unwrap();
+        serde_json::from_str(text.strip_prefix("Fixture response: ").unwrap()).unwrap()
     }
 
     #[tokio::test]
@@ -2444,6 +2491,7 @@ mod tests {
         let root = Root::new();
         let (application, faults) = root.faulty().await;
         let (tx, mut output, s) = open_with(&root, application).await;
+        let stale = epoch(&tx, 9, &s).await.unwrap();
         faults.user_commit.store(true, Ordering::SeqCst);
         faults.load.store(true, Ordering::SeqCst);
         let error = prompt(&tx, 10, &s, "rejected first")
@@ -2456,13 +2504,12 @@ mod tests {
         );
         published_error(&mut output, &s, "synthetic load failure").await;
         let attempted = faults.loads.load(Ordering::SeqCst);
-        // Registered and observable; later connection events do not retry the rebuild.
+        // Registered and observable as the same stale owner; later connection events do not
+        // retry the rebuild.
         for id in [11, 12] {
-            assert!(
-                !snapshot_messages(&tx, id, &s)
-                    .await
-                    .contains("rejected first")
-            );
+            let owner = snapshot(&tx, id, &s).await;
+            assert_eq!(owner["state"], "idle");
+            assert_eq!(owner["epoch"], stale);
         }
         assert_eq!(faults.loads.load(Ordering::SeqCst), attempted);
         // Each foreground admission retries once and fails with the cause, admitting nothing.
@@ -2496,21 +2543,11 @@ mod tests {
             );
         }
         faults.load.store(false, Ordering::SeqCst);
-        let receipt = prompt(&tx, 20, &s, "recovered")
-            .await
-            .unwrap()
-            .expect("the rebuilt owner admits the prompt");
-        assert!(receipt["messageId"].is_string(), "{receipt}");
-        let messages = snapshot_messages(&tx, 21, &s).await;
-        assert!(messages.contains("recovered"), "{messages}");
-        for stale in [
-            "rejected first",
-            "stale prompt",
-            "stale queue",
-            "stale-shell",
-        ] {
-            assert!(!messages.contains(stale), "{stale}: {messages}");
-        }
+        // The recovered turn runs on a rebuilt owner, whose context holds neither the failed
+        // input nor anything refused since.
+        let context = provider_context(&tx, &mut output, 20, &s).await;
+        assert_eq!(context, ["fixture:context"], "the provider saw stale input");
+        assert_ne!(epoch(&tx, 22, &s).await.unwrap(), stale);
         shutdown(&tx).await;
     }
 
@@ -2519,6 +2556,7 @@ mod tests {
         let root = Root::new();
         let (application, faults) = root.faulty().await;
         let (tx, mut output, s) = open_with(&root, application).await;
+        let stale = epoch(&tx, 29, &s).await.unwrap();
         // Received at the failing commit itself: behind the prompt, ahead of its rejection,
         // so this reply is still owed when the settled owner rebuilds.
         let (reply, cancelled) = oneshot::channel();
@@ -2551,11 +2589,7 @@ mod tests {
             !UNOBSERVABLE.with(Cell::get),
             "the rebuild reached observation"
         );
-        assert!(
-            !snapshot_messages(&tx, 32, &s)
-                .await
-                .contains("rejected first")
-        );
+        assert_eq!(snapshot(&tx, 32, &s).await["epoch"], stale);
         call(
             &tx,
             json!(33),
@@ -2565,11 +2599,9 @@ mod tests {
         .await
         .unwrap()
         .expect("the connection keeps serving");
-        let receipt = prompt(&tx, 34, &s, "recovered")
-            .await
-            .unwrap()
-            .expect("the retried rebuild admits the prompt");
-        assert!(receipt["messageId"].is_string(), "{receipt}");
+        let context = provider_context(&tx, &mut output, 34, &s).await;
+        assert_eq!(context, ["fixture:context"], "the provider saw stale input");
+        assert_ne!(epoch(&tx, 36, &s).await.unwrap(), stale);
         shutdown(&tx).await;
     }
 

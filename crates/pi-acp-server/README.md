@@ -82,6 +82,7 @@ The deterministic fixture recognizes normal text and these test inputs:
 - `fixture:multi-slot`: emit text, thought, text in distinct native slots, then wait.
 - `fixture:transform TEXT`: transform admitted text before queueing/insertion.
 - `fixture:handled`: handle an input without a retained user message.
+- `fixture:context`: answer with the user messages the provider was given, oldest first, as a JSON array.
 
 `cargo test -p pi-acp-server` runs the pinned positive/negative contract fixtures,
 real child-process protocol scenarios, injected persistence failures, and real

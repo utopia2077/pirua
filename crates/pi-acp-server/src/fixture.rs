@@ -61,23 +61,34 @@ pub fn stream(delay_ms: u64) -> StreamFn {
         let attempts = attempts.clone();
         Box::pin(async move {
             let context = serde_json::to_value(request.context.into_messages()).expect("context");
-            let user = context
+            let plain = |message: &Value| -> String {
+                if let Some(t) = message["content"].as_str() {
+                    t.to_owned()
+                } else {
+                    message["content"]
+                        .as_array()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|b| b["text"].as_str())
+                                .collect::<Vec<_>>()
+                                .join("\n")
+                        })
+                        .unwrap_or_default()
+                }
+            };
+            let users = context
                 .as_array()
-                .and_then(|a| a.iter().rev().find(|m| m["role"] == "user"))
-                .cloned()
-                .unwrap_or(Value::Null);
-            let text = if let Some(t) = user["content"].as_str() {
-                t.to_owned()
+                .into_iter()
+                .flatten()
+                .filter(|m| m["role"] == "user")
+                .collect::<Vec<_>>();
+            let text = users.last().map(|m| plain(m)).unwrap_or_default();
+            // Answers with the user messages the provider was given, oldest first, as JSON.
+            let text = if text.contains("fixture:context") {
+                serde_json::to_string(&users.iter().map(|m| plain(m)).collect::<Vec<_>>())
+                    .expect("context texts")
             } else {
-                user["content"]
-                    .as_array()
-                    .map(|a| {
-                        a.iter()
-                            .filter_map(|b| b["text"].as_str())
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    })
-                    .unwrap_or_default()
+                text
             };
             let tool_done = context
                 .as_array()
