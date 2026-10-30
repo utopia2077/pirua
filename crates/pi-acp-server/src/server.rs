@@ -1009,6 +1009,9 @@ impl Host {
                     "session/prompt" => {
                         self.contracts.validate("PromptRequest", params)?;
                         self.admit(&id, params).await?;
+                        // Local reads only (the credential store and the environment): `check_auth`
+                        // never refreshes OAuth or reaches the network, so this await is brief and
+                        // keeps admission ordered before the run starts.
                         if let Some(registry) = &self.application.registry {
                             let model = self.owners[&id].session.model();
                             if registry
