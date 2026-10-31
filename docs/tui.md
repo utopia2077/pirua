@@ -44,7 +44,8 @@ the default-saving shortcuts do not persist global execution defaults.
 ## Credentials and storage
 
 The host composes the native OpenAI, Google Gemini, Anthropic and DeepSeek
-integrations. Existing environment credentials are available through
+integrations, plus any OpenAI-compatible providers configured in `models.json`
+(see below). Existing environment credentials are available through
 `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` and `DEEPSEEK_API_KEY`.
 Use `/login` for a host-advertised API key or supported OAuth interaction.
 OpenAI ChatGPT and Anthropic subscription OAuth use the native authentication
@@ -55,7 +56,7 @@ The default native data directory is `$XDG_DATA_HOME/pirua`, falling back to
 `~/.local/share/pirua`. It contains `sessions.sqlite`, `credentials.sqlite` and
 the installation identifier used by native authentication. Configuration comes
 from `$XDG_CONFIG_HOME/pirua`, falling back to `~/.config/pirua`; the host reads
-`settings.json` and native resource directories there. `--config-dir` overrides
+`settings.json`, `models.json` and native resource directories there. `--config-dir` overrides
 that location. `--credentials PATH` explicitly imports the native credential-map
 format into the host credential store; it does not search an upstream Pi account
 directory. `/logout` removes stored credentials for all host-managed providers.
@@ -66,6 +67,71 @@ environment.
 keybindings and diagnostics; its default is `~/.local/share/pirua/tui`. These
 settings are independent of native execution settings. Sessions live in the
 native store and are selected by ID; the frontend never edits JSONL files.
+
+## OpenAI-compatible gateways
+
+`models.json` in the configuration directory adds providers on the retained
+`openai-completions` wire, such as a new-api gateway in front of DeepSeek or vLLM.
+It accepts this subset of Pi's `models.json`:
+
+```json
+{
+  "providers": {
+    "gateway": {
+      "name": "Gateway",
+      "baseUrl": "https://gateway.example/v1",
+      "api": "openai-completions",
+      "apiKey": "$GATEWAY_API_KEY",
+      "compat": { "supportsDeveloperRole": false },
+      "models": [
+        { "id": "deepseek-v4-flash", "reasoning": true, "contextWindow": 1000000, "maxTokens": 32768 }
+      ]
+    }
+  }
+}
+```
+
+- A provider needs `baseUrl`, an absolute http or https URL without credentials,
+  query, fragment or surrounding whitespace; `api` set to `openai-completions`; and at
+  least one model. `name`, `apiKey` and `compat` are optional.
+- A model needs `id`; `name`, `reasoning`, `thinkingLevelMap`, `input`, `cost`,
+  `contextWindow`, `maxTokens` and `compat` are optional. Unset fields take Pi's
+  defaults: the id as name, no reasoning, text input, zero cost, a 128000-token
+  context window and 16384 output tokens. Fields may be omitted but not `null`, and
+  names may not be empty.
+- Model `compat` overrides provider `compat`. `chatTemplateKwargs`,
+  `chatTemplateArgs`, `openRouterRouting` and `vercelGatewayRouting` merge per key.
+- `apiKey` is a literal or interpolates `$NAME` and `${NAME}` from the environment
+  at request time; `$$` and `$!` produce `$` and `!`. An unset or empty variable
+  leaves the provider without a key, and a provider without a key refuses prompts,
+  so give a server that needs no key any placeholder value. A key stored with
+  `/login` takes precedence.
+- Provider ids use ASCII letters, digits, `.`, `_` and `-`, and cannot name a
+  built-in provider in any letter case. Providers are listed in file order. Other
+  upstream fields, such as `headers`, `oauth`, `authHeader`, `modelOverrides`,
+  `!command` keys and per-model `api` or `baseUrl`, are rejected, as are JSON comments.
+- The host reads the file once at startup; restart it after editing. An invalid file
+  stops startup before anything is written, naming the file, provider and model.
+
+Select a configured model with `--server-arg --model --server-arg gateway/deepseek-v4-flash`
+or `/model`. DeepSeek reasoning is read whether it arrives as `reasoning_content`
+(DeepSeek's API) or `reasoning` (vLLM), and is sent back under the same field. These
+settings select how thinking is requested:
+
+| Endpoint | `compat` and model settings |
+|---|---|
+| Gateway relaying DeepSeek's official API | `{"thinkingFormat":"deepseek","requiresReasoningContentOnAssistantMessages":true,"supportsDeveloperRole":false,"maxTokensField":"max_tokens","supportsStore":false,"supportsStrictMode":true}` with `"reasoning": true` and a built-in model's `thinkingLevelMap`, such as `deepseek-v4-pro`'s `{"minimal":null,"low":null,"medium":null,"high":"high","max":"max"}` |
+| vLLM 0.21 serving DeepSeek V4, directly or through a gateway that keeps `chat_template_kwargs` and assistant `reasoning` (new-api does) | `{"thinkingFormat":"chat-template","chatTemplateKwargs":{"thinking":{"$var":"thinking.enabled"},"reasoning_effort":{"$var":"thinking.effort","omitWhenOff":true}},"supportsDeveloperRole":false}` with `"reasoning": true`, the `thinkingLevelMap` above and a `contextWindow` no larger than the server's `max_model_len` |
+| Gateway model alias whose parameter override fixes thinking on or off | `{"supportsDeveloperRole":false,"requiresReasoningContentOnAssistantMessages":true}` with `reasoning` matching the alias; new-api applies overrides only with request pass-through off |
+
+vLLM's DeepSeek V4 encoder renders a `developer` message as a user turn, and in
+thinking mode without tools drops it before the last user message; hence
+`supportsDeveloperRole`. vLLM's DeepSeek V4 chat template maps the `max` and
+`xhigh` efforts to its maximum, `none` to thinking off, and every other effort to
+high. A gateway must keep reasoning in its own
+field; in new-api, leave ThinkingToContent off. The
+[recorded streams](../conformance/provider-traces/openai-completions/recorded/README.md)
+document both reasoning formats and the vLLM contracts behind these settings.
 
 ## Local demonstration without an account
 

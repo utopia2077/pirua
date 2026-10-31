@@ -14,10 +14,11 @@ The default data directory is `$XDG_DATA_HOME/pirua`, or
 `$XDG_CONFIG_HOME/pirua`, or `$HOME/.config/pirua`. Available options are:
 
 - `--data-dir PATH`: conversation and credential SQLite databases.
-- `--config-dir PATH`: settings and resources.
+- `--config-dir PATH`: settings, resources and `models.json` providers.
 - `--credentials PATH`: explicitly import an existing native Pi credential JSON
   object, keyed by provider. Existing stored provider credentials take precedence.
-- `--model provider/model`: choose an exact model from the selected captured catalog.
+- `--model provider/model`: choose an exact model from the selected captured catalog
+  or `models.json`.
 - `--fixture-provider`: explicitly select the deterministic offline provider.
 - `--fixture-delay-ms N`: delay fixture stream steps, defaulting to 25 ms.
 
@@ -26,6 +27,12 @@ scope. It uses their native API-key/OAuth ports. A missing credential produces a
 actionable setup error and never selects the fixture provider. The process accepts
 provider environment configuration through the existing native authentication
 context. Upstream Pi credential paths are not discovered implicitly.
+
+`models.json` in the configuration directory may add providers on the retained
+`openai-completions` wire, such as OpenAI-compatible gateways; the accepted subset of
+Pi's format is described in [the terminal guide](../../docs/tui.md#openai-compatible-gateways).
+Configured providers cannot redefine a built-in provider, and an invalid file stops
+startup with the file, provider and model named.
 
 When the client advertises form elicitation, initialization advertises the real
 selected authentication methods. `auth/login` calls the existing provider login

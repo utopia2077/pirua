@@ -976,3 +976,57 @@ fn loaded_image_policy_remains_effective_after_resource_reload() {
         c.shutdown();
     }
 }
+#[test]
+fn configured_models_json_provider_is_advertised_and_accepts_a_login() {
+    let root = std::env::temp_dir().join(format!(
+        "pirua-acp-models-json-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(root.join("config")).unwrap();
+    std::fs::write(
+        root.join("config/models.json"),
+        json!({"providers":{"gateway":{"name":"Gateway","baseUrl":"https://gateway.invalid/v1",
+            "api":"openai-completions","apiKey":"$PIRUA_TEST_UNSET_GATEWAY_KEY",
+            "models":[{"id":"deepseekv4-flash","reasoning":true}]}}})
+        .to_string(),
+    )
+    .unwrap();
+    let mut c = Client::at_mode(root, false);
+    let initialization = c.authenticate_connection(true);
+    let method = initialization["authMethods"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["methodId"] == "gateway:apiKey")
+        .unwrap_or_else(|| panic!("configured provider not advertised: {initialization}"))
+        .clone();
+    assert_eq!(method["name"], "Gateway API key");
+    assert!(method["_meta"]["pirua.dev/auth"].get("status").is_none());
+    let session = c.new_session();
+    let login = c.begin("auth/login", json!({"methodId":"gateway:apiKey"}));
+    let form = c.form();
+    c.send(json!({"jsonrpc":"2.0","id":form["id"],"result":{"action":"accept","content":{"value":"synthetic-gateway-key"}}}));
+    assert_eq!(c.result(login)["result"], json!({}));
+    let methods = c.snapshot(&session)["authMethods"].clone();
+    let status = methods
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["methodId"] == "gateway:apiKey")
+        .unwrap()["_meta"]["pirua.dev/auth"]["status"]
+        .clone();
+    assert_eq!(
+        status,
+        json!({"type":"api_key","source":"stored credential"})
+    );
+    assert!(
+        !c.events
+            .iter()
+            .any(|v| v.to_string().contains("synthetic-gateway-key"))
+    );
+    c.shutdown();
+}

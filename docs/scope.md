@@ -60,7 +60,9 @@ and follow-up, model/thinking selection, session reopening, tree navigation, for
 compaction, labels, session names and local HTML export. Local UI preferences,
 themes, keybindings, clipboard and presentation callbacks remain in TypeScript.
 This launch mode assumes a same-machine working directory for completion and
-predictive diff reads; it does not establish remote filesystem support.
+predictive diff reads; it does not establish remote filesystem support. The host
+also reads a subset of Pi's `models.json` that adds providers on the retained
+Completions wire, such as OpenAI-compatible gateways; see [the terminal guide](tui.md).
 
 JSONL import/export, upstream JavaScript backend extensions, package management,
 external transcript sharing, issue uploads and persistent default-model editing

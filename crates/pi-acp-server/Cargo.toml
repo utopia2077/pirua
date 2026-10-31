@@ -19,8 +19,9 @@ pi-coding-runtime = { workspace = true, features = ["provider-anthropic", "provi
 pi-coding-session.workspace = true
 pi-sqlite.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
 base64.workspace = true
 futures-util.workspace = true
 jsonschema.workspace = true
 tokio = { workspace = true, features = ["io-std", "process", "macros", "signal"] }
+url.workspace = true

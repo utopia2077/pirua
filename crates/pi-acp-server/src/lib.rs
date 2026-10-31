@@ -2,6 +2,7 @@
 pub mod composition;
 pub mod credentials;
 pub mod fixture;
+pub mod models_config;
 pub mod projection;
 pub mod protocol;
 pub mod server;

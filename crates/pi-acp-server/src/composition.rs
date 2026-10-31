@@ -1,5 +1,9 @@
 //! Production native providers/auth/catalog, resources, settings and local tools.
-use crate::{credentials::Credentials, fixture};
+use crate::{
+    credentials::Credentials,
+    fixture,
+    models_config::{ModelsConfig, register_configured_providers},
+};
 use pi_ai::*;
 use pi_ai_providers::{
     api::runtime::AdapterServices,
@@ -95,6 +99,12 @@ pub struct Application {
 }
 impl Application {
     pub async fn new(options: Options) -> Result<Self, AppError> {
+        // Host model configuration is validated before anything is created.
+        let configured = if options.fixture_provider {
+            ModelsConfig::default()
+        } else {
+            ModelsConfig::load(&options.config_dir.join("models.json"))?
+        };
         std::fs::create_dir_all(&options.data_dir)?;
         std::fs::create_dir_all(&options.config_dir)?;
         #[cfg(unix)]
@@ -147,11 +157,12 @@ impl Application {
             let registry = compose_registry(
                 credentials,
                 Arc::new(NativeProviderAuthContext::new(std::env::var("HOME").ok())),
-                transport,
+                transport.clone(),
                 &runtime,
                 Some(oauth),
             )
             .await?;
+            register_configured_providers(&registry, &configured, transport).await?;
             let models = registry.get_models(None);
             (Some(registry), models)
         };
