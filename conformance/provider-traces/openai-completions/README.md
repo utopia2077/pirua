@@ -103,3 +103,10 @@ Controls cover whitespace, duplicate zero headers, `00`, absent length, text
 content type and streaming. Noncooperative source-skipped bodies are never polled;
 Completions still calls onResponse, publishes Start, and reports the subsequent
 undefined/null iteration error through safe terminal text.
+
+## Recorded provider streams
+
+[`recorded/`](recorded/README.md) holds real DeepSeek and vLLM 0.21 reasoning streams
+plus one vLLM tool-call stream generated from vLLM's parser code. Their authority is
+the observed servers and, for the generated stream, vLLM's parser code, not this
+oracle; the README there records provenance and the server contracts they pin.

@@ -1678,3 +1678,358 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases() {
         }
     }
 }
+
+// Recorded provider streams: official DeepSeek `reasoning_content` and vLLM 0.21
+// `reasoning`, replayed byte-for-byte through the production SSE decoder. Expected
+// values are transcribed from the recordings, never produced by this adapter; see
+// conformance/provider-traces/openai-completions/recorded/README.md for provenance.
+macro_rules! recorded {
+    ($name:literal) => {
+        include_bytes!(concat!(
+            "../../../conformance/provider-traces/openai-completions/recorded/",
+            $name
+        ))
+        .as_slice()
+    };
+}
+
+const VLLM_REASONING: &str = "我们要求1+2+...+100的和。这是一个等差数列求和，首项a1=1，末项an=100，项数n=100。公式为S = n*(a1+an)/2 = 100*(1+100)/2 = 100*101/2 = 5050。因此答案是5050。";
+const VLLM_TEXT: &str = "1+2+…+100 = 5050。这是利用等差数列求和公式得到的：  \n\\[ S = \\frac{n(a_1 + a_n)}{2} = \\frac{100 \\times (1 + 100)}{2} = 5050 \\]";
+const DEEPSEEK_REASONING: &str = "The user wants me to read /etc/hosts and tell them the first line. Let me use the read_file tool.";
+
+/// The catalog's DeepSeek profile, used when a gateway relays the official API.
+fn deepseek_compat() -> Value {
+    json!({"supportsStore":false,"supportsDeveloperRole":false,"maxTokensField":"max_tokens",
+           "requiresReasoningContentOnAssistantMessages":true,"thinkingFormat":"deepseek",
+           "supportsStrictMode":true})
+}
+
+/// vLLM 0.21 serving DeepSeek V4 reads thinking from chat-template arguments.
+fn vllm_compat() -> Value {
+    json!({"supportsDeveloperRole":false,"thinkingFormat":"chat-template",
+           "chatTemplateKwargs":{"thinking":{"$var":"thinking.enabled"},
+                                 "reasoning_effort":{"$var":"thinking.effort","omitWhenOff":true}}})
+}
+
+fn user(text: &str) -> Value {
+    json!({"role":"user","content":text,"timestamp":0})
+}
+
+fn recorded_case(model: &str, compat: Value, effort: Option<&str>, messages: Vec<Value>) -> Value {
+    json!({
+        "model": {"id":model,"name":model,"api":"openai-completions","provider":"gateway",
+                  "baseUrl":"https://gateway.invalid/v1","reasoning":true,"input":["text"],
+                  "cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0},
+                  "contextWindow":1000000,"maxTokens":32768,"compat":compat},
+        "context": {"systemPrompt":"system","messages":messages,
+                    "tools":[{"name":"read_file","description":"Read a file","parameters":
+                              {"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}}]},
+        "options": effort.map_or(json!({}), |effort| json!({"reasoningEffort":effort})),
+    })
+}
+
+/// Returns the terminal message, event types with consecutive repeats collapsed,
+/// and the sent request body.
+fn replay(case: &Value, sse: &[u8], chunk: usize) -> (Value, Vec<String>, Value) {
+    let (api, spawner, observed, _, request, options) = setup(
+        case,
+        200,
+        sse.chunks(chunk).map(<[u8]>::to_vec).collect(),
+        false,
+    );
+    let mut stream = api.stream_with_options(request, options);
+    ready(spawner.take());
+    let message = serde_json::to_value(retained_support::message(ready(stream.result()))).unwrap();
+    let mut types: Vec<String> = Vec::new();
+    while let Some(event) = ready(stream.next()) {
+        let kind = serde_json::to_value(event).unwrap()["type"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        if types.last() != Some(&kind) {
+            types.push(kind);
+        }
+    }
+    let body = observed.requests.lock().unwrap()[0]["body"].clone();
+    (message, types, body)
+}
+
+/// One whole body and 7-byte reads that split multi-byte UTF-8 must settle identically.
+fn replay_recording(case: &Value, sse: &[u8]) -> (Value, Vec<String>, Value) {
+    let whole = replay(case, sse, sse.len());
+    assert_eq!(
+        replay(case, sse, 7),
+        whole,
+        "fragmented reads must not change the result"
+    );
+    whole
+}
+
+fn usage_counts(message: &Value) -> [u64; 4] {
+    ["input", "output", "cacheRead", "totalTokens"]
+        .map(|key| message["usage"][key].as_u64().unwrap())
+}
+
+#[test]
+fn recorded_deepseek_thinking_stream_keeps_reasoning_content_beside_its_tool_call() {
+    let case = recorded_case(
+        "deepseek-v4-flash",
+        deepseek_compat(),
+        Some("high"),
+        vec![user("read /etc/hosts")],
+    );
+    let (message, types, body) =
+        replay_recording(&case, recorded!("sse_deepseek_v4_thinking_with_tools.txt"));
+    assert_eq!(body["thinking"], json!({"type":"enabled"}));
+    assert_eq!(body["reasoning_effort"], "high");
+    assert_eq!(body["messages"][0]["role"], "system");
+    assert_eq!(
+        types,
+        [
+            "start",
+            "thinking_start",
+            "thinking_delta",
+            "text_start",
+            "text_delta",
+            "toolcall_start",
+            "toolcall_delta",
+            "thinking_end",
+            "text_end",
+            "toolcall_end",
+            "done"
+        ]
+    );
+    assert_eq!(
+        message["content"],
+        json!([
+            {"type":"thinking","thinking":DEEPSEEK_REASONING,"thinkingSignature":"reasoning_content"},
+            {"type":"text","text":"我来读取这个文件。"},
+            {"type":"toolCall","id":"call_00_epqxJM7KTZNboYxcyNLO1033","name":"read_file","arguments":{"path":"/etc/hosts"}}
+        ])
+    );
+    assert_eq!(message["stopReason"], "toolUse");
+    assert_eq!(
+        message["responseId"],
+        "924a12ff-a6d7-4864-9120-a45074da6b7f"
+    );
+    // The gateway serves the requested alias under the provider's current name.
+    assert_eq!(message["responseModel"], "deepseek-flash");
+    assert_eq!(usage_counts(&message), [301, 70, 0, 371]);
+    assert_eq!(message["usage"]["reasoning"], 25);
+}
+
+#[test]
+fn recorded_deepseek_nonthinking_streams_carry_no_reasoning() {
+    for (name, sse, text, call_id, counts) in [
+        (
+            "with text",
+            recorded!("sse_deepseek_v4_nonthinking_with_tools.txt"),
+            Some("我来读取这个文件。"),
+            "call_00_lNcxb8fNzZXH7dM04oD19264",
+            [149, 44, 128, 321],
+        ),
+        (
+            "tool only",
+            recorded!("sse_deepseek_v4_nonthinking_puretool.txt"),
+            None,
+            "call_00_xQXDClHtu9Tl7SdMRywn7699",
+            [282, 40, 0, 322],
+        ),
+    ] {
+        let case = recorded_case(
+            "deepseek-v4-flash",
+            deepseek_compat(),
+            None,
+            vec![user("read /etc/hosts")],
+        );
+        let (message, types, body) = replay_recording(&case, sse);
+        assert_eq!(body["thinking"], json!({"type":"disabled"}), "{name}");
+        assert!(body.get("reasoning_effort").is_none(), "{name}");
+        let call = json!({"type":"toolCall","id":call_id,"name":"read_file","arguments":{"path":"/etc/hosts"}});
+        let (content, expected_types) = match text {
+            Some(text) => (
+                json!([{"type":"text","text":text}, call]),
+                vec![
+                    "start",
+                    "text_start",
+                    "text_delta",
+                    "toolcall_start",
+                    "toolcall_delta",
+                    "text_end",
+                    "toolcall_end",
+                    "done",
+                ],
+            ),
+            None => (
+                json!([call]),
+                vec![
+                    "start",
+                    "toolcall_start",
+                    "toolcall_delta",
+                    "toolcall_end",
+                    "done",
+                ],
+            ),
+        };
+        assert_eq!(message["content"], content, "{name}");
+        assert_eq!(types, expected_types, "{name}");
+        assert_eq!(message["stopReason"], "toolUse", "{name}");
+        assert_eq!(usage_counts(&message), counts, "{name}");
+    }
+}
+
+#[test]
+fn recorded_vllm_stream_keeps_delta_reasoning_and_settles_without_usage() {
+    let case = recorded_case(
+        "deepseekv4-flash",
+        vllm_compat(),
+        Some("high"),
+        vec![user("1+2+...+100")],
+    );
+    let (message, types, body) =
+        replay_recording(&case, recorded!("sse_vllm021_delta_reasoning.txt"));
+    assert_eq!(
+        body["chat_template_kwargs"],
+        json!({"thinking":true,"reasoning_effort":"high"})
+    );
+    assert!(body.get("thinking").is_none() && body.get("reasoning_effort").is_none());
+    assert_eq!(body["messages"][0]["role"], "system");
+    assert_eq!(body["stream_options"], json!({"include_usage":true}));
+    assert_eq!(
+        types,
+        [
+            "start",
+            "thinking_start",
+            "thinking_delta",
+            "text_start",
+            "text_delta",
+            "thinking_end",
+            "text_end",
+            "done"
+        ]
+    );
+    assert_eq!(
+        message["content"],
+        json!([
+            {"type":"thinking","thinking":VLLM_REASONING,"thinkingSignature":"reasoning"},
+            {"type":"text","text":VLLM_TEXT}
+        ])
+    );
+    assert_eq!(message["stopReason"], "stop");
+    assert!(message.get("responseModel").is_none());
+    // The recording has no usage frame; reported usage stays zero rather than estimated.
+    assert_eq!(message["usage"], json!(pi_ai_core::Usage::zero()));
+}
+
+#[test]
+fn synthetic_vllm_stream_delivers_each_tool_call_in_one_frame() {
+    let case = recorded_case(
+        "deepseekv4-flash",
+        vllm_compat(),
+        Some("high"),
+        vec![user("read and list")],
+    );
+    let (message, types, _) =
+        replay_recording(&case, recorded!("synthetic_vllm021_tools_thinking.sse"));
+    assert_eq!(
+        types,
+        [
+            "start",
+            "thinking_start",
+            "thinking_delta",
+            "text_start",
+            "text_delta",
+            "toolcall_start",
+            "toolcall_delta",
+            "toolcall_start",
+            "toolcall_delta",
+            "thinking_end",
+            "text_end",
+            "toolcall_end",
+            "done"
+        ]
+    );
+    assert_eq!(
+        message["content"],
+        json!([
+            {"type":"thinking","thinking":"用户要求同时读取 /etc/hosts 并列出 /tmp，我分别调用 read_file 和 run_command。","thinkingSignature":"reasoning"},
+            {"type":"text","text":"好的，我来分别处理。\n\n"},
+            {"type":"toolCall","id":"call_1f58e66539e74b6ca5fd8e85","name":"read_file","arguments":{"path":"/etc/hosts"}},
+            {"type":"toolCall","id":"call_896317fabe144ed0a2c77cbf","name":"run_command","arguments":{"cmd":"ls -la /tmp","timeout":30}}
+        ])
+    );
+    assert_eq!(message["stopReason"], "toolUse");
+    assert_eq!(usage_counts(&message), [812, 122, 0, 934]);
+}
+
+#[test]
+fn recorded_reasoning_replays_under_the_field_each_server_reads() {
+    // vLLM 0.21 reads only `reasoning` from assistant history, while DeepSeek requires
+    // `reasoning_content` on every assistant message. A DeepSeek profile in front of a
+    // vLLM backend therefore sends both keys; the backend reads the populated one.
+    let stop = b"data: {\"id\":\"next\",\"object\":\"chat.completion.chunk\",\"created\":1,\"model\":\"next\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n";
+    for (model, compat, sse, field, text, keys) in [
+        (
+            "deepseekv4-flash",
+            vllm_compat(),
+            recorded!("sse_vllm021_delta_reasoning.txt"),
+            "reasoning",
+            VLLM_REASONING,
+            vec!["reasoning"],
+        ),
+        (
+            "deepseekv4-flash",
+            deepseek_compat(),
+            recorded!("sse_vllm021_delta_reasoning.txt"),
+            "reasoning",
+            VLLM_REASONING,
+            vec!["reasoning", "reasoning_content"],
+        ),
+        (
+            "deepseek-v4-flash",
+            deepseek_compat(),
+            recorded!("sse_deepseek_v4_thinking_with_tools.txt"),
+            "reasoning_content",
+            DEEPSEEK_REASONING,
+            vec!["reasoning_content"],
+        ),
+    ] {
+        let first = recorded_case(model, compat.clone(), Some("high"), vec![user("first")]);
+        let (assistant, _, _) = replay(&first, sse, sse.len());
+        let mut history = vec![user("first"), assistant.clone()];
+        for call in assistant["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|b| b["type"] == "toolCall")
+        {
+            history.push(json!({"role":"toolResult","toolCallId":call["id"],"toolName":call["name"],
+                                "content":[{"type":"text","text":"127.0.0.1 localhost"}],"isError":false,"timestamp":0}));
+        }
+        history.push(user("next"));
+        let second = recorded_case(model, compat, Some("high"), history);
+        let (_, _, body) = replay(&second, stop, stop.len());
+        let replayed = body["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "assistant")
+            .unwrap();
+        assert_eq!(replayed[field], text, "{model} {keys:?}");
+        let mut present = replayed
+            .as_object()
+            .unwrap()
+            .keys()
+            .filter(|k| k.starts_with("reasoning"))
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        present.sort_unstable();
+        assert_eq!(present, keys, "{model}");
+        if keys.len() == 2 {
+            assert_eq!(
+                replayed["reasoning_content"], "",
+                "the DeepSeek placeholder stays empty"
+            );
+        }
+    }
+}

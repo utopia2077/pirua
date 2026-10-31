@@ -3665,6 +3665,31 @@
           "cargo_target": "openai_completions"
         },
         {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:recorded_deepseek_thinking_stream_keeps_reasoning_content_beside_its_tool_call",
+          "cargo_target": "openai_completions"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:recorded_deepseek_nonthinking_streams_carry_no_reasoning",
+          "cargo_target": "openai_completions"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:recorded_vllm_stream_keeps_delta_reasoning_and_settles_without_usage",
+          "cargo_target": "openai_completions"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:synthetic_vllm_stream_delivers_each_tool_call_in_one_frame",
+          "cargo_target": "openai_completions"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:recorded_reasoning_replays_under_the_field_each_server_reads",
+          "cargo_target": "openai_completions"
+        },
+        {
           "path": "crates/pi-ai-providers/tests/openai_responses.rs",
           "anchor": "test:pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
           "cargo_target": "openai_responses"
